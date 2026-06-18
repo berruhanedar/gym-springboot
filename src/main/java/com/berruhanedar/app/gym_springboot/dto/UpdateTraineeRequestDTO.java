@@ -1,9 +1,6 @@
 package com.berruhanedar.app.gym_springboot.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Past;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -11,23 +8,23 @@ import java.time.LocalDate;
 @Data
 public class UpdateTraineeRequestDTO {
 
-    @NotNull(message = "Id cannot be null")
+    @NotNull
     private Long id;
 
-    @NotBlank(message = "First name cannot be blank")
-    @Size(min = 2, max = 50, message = "First name must be between 2-50 characters")
+    @NotBlank
+    @Size(min = 2, max = 50)
     private String firstName;
 
-    @NotBlank(message = "Last name cannot be blank")
-    @Size(min = 2, max = 50, message = "Last name must be between 2-50 characters")
+    @NotBlank
+    @Size(min = 2, max = 50)
     private String lastName;
 
-    @Past(message = "Date of birth must be in the past")
+    @Past
     private LocalDate dateOfBirth;
 
-    @Size(max = 255, message = "Address cannot exceed 255 characters")
+    @Size(max = 255)
     private String address;
 
-    @NotNull(message = "Active status cannot be null")
+    @NotNull
     private Boolean isActive;
 }

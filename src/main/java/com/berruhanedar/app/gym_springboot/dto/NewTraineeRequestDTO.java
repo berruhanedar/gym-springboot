@@ -10,17 +10,17 @@ import java.time.LocalDate;
 @Data
 public class NewTraineeRequestDTO {
 
-    @NotBlank(message = "First name cannot be blank")
-    @Size(min = 2, max = 50, message = "First name must be between 2-50 characters")
+    @NotBlank
+    @Size(min = 2, max = 50)
     private String firstName;
 
-    @NotBlank(message = "Last name cannot be blank")
-    @Size(min = 2, max = 50, message = "Last name must be between 2-50 characters")
+    @NotBlank
+    @Size(min = 2, max = 50)
     private String lastName;
 
-    @Past(message = "Date of birth must be in the past")
+    @Past
     private LocalDate dateOfBirth;
 
-    @Size(max = 255, message = "Address cannot exceed 255 characters")
+    @Size(max = 255)
     private String address;
 }

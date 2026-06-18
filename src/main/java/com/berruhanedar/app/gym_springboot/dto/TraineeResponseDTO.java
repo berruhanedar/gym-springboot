@@ -6,7 +6,6 @@ import java.time.LocalDate;
 
 @Data
 public class TraineeResponseDTO {
-
     private Long id;
     private String firstName;
     private String lastName;

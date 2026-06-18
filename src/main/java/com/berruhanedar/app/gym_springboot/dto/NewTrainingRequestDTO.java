@@ -20,7 +20,7 @@ public class NewTrainingRequestDTO {
 
     @NotBlank
     @Size(min = 2, max = 50)
-    private String trainingType;
+    private String trainingTypeName;
 
     @NotNull
     private LocalDate trainingDate;
