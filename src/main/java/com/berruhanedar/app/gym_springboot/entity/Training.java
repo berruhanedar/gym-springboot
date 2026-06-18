@@ -10,12 +10,11 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Training {
-
     private Long id;
     private Long traineeId;
     private Long trainerId;
     private String trainingName;
-    private String trainingType;
+    private TrainingType trainingType;
     private LocalDate trainingDate;
     private Integer trainingDuration;
 }
