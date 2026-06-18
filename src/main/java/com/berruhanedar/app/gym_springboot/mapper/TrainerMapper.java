@@ -7,10 +7,9 @@ import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface TrainerMapper {
-
     TrainerResponseDTO toDTO(Trainer trainer);
 
     Trainer toEntity(NewTrainerRequestDTO dto);
 
-    void updateTrainerFromDTO(UpdateTrainerRequestDTO dto, @MappingTarget Trainer trainer);
+    void updateFromDTO(UpdateTrainerRequestDTO dto, @MappingTarget Trainer trainer);
 }
