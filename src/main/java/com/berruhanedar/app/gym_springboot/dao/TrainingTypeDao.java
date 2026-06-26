@@ -14,11 +14,6 @@ public class TrainingTypeDao {
     @PersistenceContext
     private EntityManager entityManager;
 
-    public TrainingType save(TrainingType trainingType) {
-        entityManager.persist(trainingType);
-        return trainingType;
-    }
-
     public Optional<TrainingType> findById(Long id) {
         return Optional.ofNullable(entityManager.find(TrainingType.class, id));
     }

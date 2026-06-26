@@ -59,8 +59,10 @@ public class TrainingService {
     }
 
     @Transactional
-    public TrainingResponseDTO createTraining(CredentialsDTO trainerCredentials,@Valid NewTrainingRequestDTO dto) {
+    public TrainingResponseDTO createTraining(CredentialsDTO trainerCredentials, @Valid NewTrainingRequestDTO dto) {
         authenticationService.authenticateTrainer(trainerCredentials);
+        log.info("Creating training. traineeId={}, trainerId={}",
+                dto.getTraineeId(), dto.getTrainerId());
         Trainee trainee = traineeDao.findById(dto.getTraineeId())
                 .orElseThrow(() ->
                         new EntityNotFoundException("Trainee not found. id=" + dto.getTraineeId()));
@@ -72,13 +74,14 @@ public class TrainingService {
         training.setTrainer(trainer);
         training.setTrainingType(getTrainingType(dto.getTrainingTypeName()));
         Training saved = trainingDao.save(training);
+        log.info("Training created successfully. id={}", saved.getId());
         return trainingMapper.toDTO(saved);
     }
 
     @Transactional(readOnly = true)
     public TrainingResponseDTO getTraining(CredentialsDTO credentials, Long id) {
         authenticationService.authenticateTrainee(credentials);
-        log.debug("Selecting training profile. id={}", id);
+        log.debug("Selecting training. id={}", id);
         Training training = trainingDao.findById(id)
                 .orElseThrow(() ->
                         new EntityNotFoundException("Training not found. id=" + id));
@@ -86,42 +89,29 @@ public class TrainingService {
     }
 
     @Transactional(readOnly = true)
-    public List<TrainingResponseDTO> getTraineeTrainings(
-            CredentialsDTO traineeCredentials,
-            String traineeUsername,
-            LocalDate fromDate,
-            LocalDate toDate,
-            String trainerName,
-            String trainingType
-    ) {
+    public List<TrainingResponseDTO> getTraineeTrainings(CredentialsDTO traineeCredentials, String traineeUsername, LocalDate fromDate, LocalDate toDate, String trainerName, String trainingType) {
         authenticationService.authenticateTrainee(traineeCredentials);
+        log.debug("Getting trainings for trainee={}", traineeUsername);
         return trainingDao.findByTraineeUsernameAndCriteria(
                         traineeUsername,
                         fromDate,
                         toDate,
                         trainerName,
-                        trainingType
-                )
+                        trainingType)
                 .stream()
                 .map(trainingMapper::toDTO)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<TrainingResponseDTO> getTrainerTrainings(
-            CredentialsDTO trainerCredentials,
-            String trainerUsername,
-            LocalDate fromDate,
-            LocalDate toDate,
-            String traineeName
-    ) {
+    public List<TrainingResponseDTO> getTrainerTrainings(CredentialsDTO trainerCredentials, String trainerUsername, LocalDate fromDate, LocalDate toDate, String traineeName) {
         authenticationService.authenticateTrainer(trainerCredentials);
+        log.debug("Getting trainings for trainer={}", trainerUsername);
         return trainingDao.findByTrainerUsernameAndCriteria(
                         trainerUsername,
                         fromDate,
                         toDate,
-                        traineeName
-                )
+                        traineeName)
                 .stream()
                 .map(trainingMapper::toDTO)
                 .toList();
@@ -130,6 +120,7 @@ public class TrainingService {
     private TrainingType getTrainingType(String trainingTypeName) {
         return trainingTypeDao.findByName(trainingTypeName)
                 .orElseThrow(() ->
-                        new EntityNotFoundException("Training type not found: " + trainingTypeName));
+                        new EntityNotFoundException(
+                                "Training type not found: " + trainingTypeName));
     }
 }
