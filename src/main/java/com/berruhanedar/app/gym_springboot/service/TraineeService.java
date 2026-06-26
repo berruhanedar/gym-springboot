@@ -8,6 +8,7 @@ import com.berruhanedar.app.gym_springboot.entity.Trainer;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TraineeMapper;
 import com.berruhanedar.app.gym_springboot.util.CredentialGenerator;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -52,7 +53,7 @@ public class TraineeService {
     }
 
     @Transactional
-    public TraineeResponseDTO createTrainee(NewTraineeRequestDTO dto) {
+    public TraineeResponseDTO createTrainee(@Valid NewTraineeRequestDTO dto) {
         log.info("Creating trainee profile for {} {}", dto.getFirstName(), dto.getLastName());
         Trainee trainee = traineeMapper.toEntity(dto);
         trainee.setUsername(credentialGenerator.generateUsername(dto.getFirstName(), dto.getLastName()));
@@ -64,7 +65,7 @@ public class TraineeService {
     }
 
     @Transactional
-    public TraineeResponseDTO updateTrainee(CredentialsDTO credentials, UpdateTraineeRequestDTO dto) {
+    public TraineeResponseDTO updateTrainee(CredentialsDTO credentials, @Valid UpdateTraineeRequestDTO dto) {
         authenticationService.authenticateTrainee(credentials);
         log.info("Updating trainee profile. id={}", dto.getId());
         Trainee trainee = traineeDao.findById(dto.getId())

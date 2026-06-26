@@ -6,6 +6,7 @@ import com.berruhanedar.app.gym_springboot.entity.Trainer;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TrainerMapper;
 import com.berruhanedar.app.gym_springboot.util.CredentialGenerator;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -43,7 +44,7 @@ public class TrainerService {
     }
 
     @Transactional
-    public TrainerResponseDTO createTrainer(NewTrainerRequestDTO dto) {
+    public TrainerResponseDTO createTrainer(@Valid NewTrainerRequestDTO dto) {
         log.info("Creating trainer profile for {} {}", dto.getFirstName(), dto.getLastName());
         Trainer trainer = trainerMapper.toEntity(dto);
         trainer.setUsername(credentialGenerator.generateUsername(dto.getFirstName(), dto.getLastName()));
@@ -55,7 +56,7 @@ public class TrainerService {
     }
 
     @Transactional
-    public TrainerResponseDTO updateTrainer(CredentialsDTO credentials, UpdateTrainerRequestDTO dto) {
+    public TrainerResponseDTO updateTrainer(CredentialsDTO credentials,@Valid UpdateTrainerRequestDTO dto) {
         authenticationService.authenticateTrainer(credentials);
         log.info("Updating trainer profile. id={}", dto.getId());
         Trainer trainer = trainerDao.findById(dto.getId())

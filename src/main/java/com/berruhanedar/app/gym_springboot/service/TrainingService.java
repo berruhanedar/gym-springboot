@@ -8,6 +8,7 @@ import com.berruhanedar.app.gym_springboot.entity.Training;
 import com.berruhanedar.app.gym_springboot.entity.TrainingType;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TrainingMapper;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -58,7 +59,7 @@ public class TrainingService {
     }
 
     @Transactional
-    public TrainingResponseDTO createTraining(CredentialsDTO trainerCredentials, NewTrainingRequestDTO dto) {
+    public TrainingResponseDTO createTraining(CredentialsDTO trainerCredentials,@Valid NewTrainingRequestDTO dto) {
         authenticationService.authenticateTrainer(trainerCredentials);
         Trainee trainee = traineeDao.findById(dto.getTraineeId())
                 .orElseThrow(() ->
