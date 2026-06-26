@@ -5,7 +5,6 @@ import com.berruhanedar.app.gym_springboot.dto.*;
 import com.berruhanedar.app.gym_springboot.entity.Trainer;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TrainerMapper;
-import com.berruhanedar.app.gym_springboot.storage.IdGenerator;
 import com.berruhanedar.app.gym_springboot.util.CredentialGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,5 +63,15 @@ public class TrainerService {
         log.debug("Selecting trainer profile. id={}", id);
         return trainerMapper.toDTO(trainerDao.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Trainer not found. id=" + id)));
+    }
+
+    @Transactional(readOnly = true)
+    public TrainerResponseDTO getTrainerByUsername(String username) {
+
+        Trainer trainer = trainerDao.findByUsername(username)
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Trainer not found: " + username));
+
+        return trainerMapper.toDTO(trainer);
     }
 }
