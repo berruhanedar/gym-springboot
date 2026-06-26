@@ -30,6 +30,12 @@ public class TrainerDao {
         return List.copyOf(storage.getData().values());
     }
 
+    public List<String> findAllUsernames() {
+        return findAll().stream()
+                .map(Trainer::getUsername)
+                .toList();
+    }
+
     public boolean existsByUsername(String username) {
         return findAll().stream().anyMatch(t -> username.equals(t.getUsername()));
     }

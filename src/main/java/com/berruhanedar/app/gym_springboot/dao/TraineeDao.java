@@ -34,7 +34,14 @@ public class TraineeDao {
         storage.getData().remove(id);
     }
 
+    public List<String> findAllUsernames() {
+        return findAll().stream()
+                .map(Trainee::getUsername)
+                .toList();
+    }
+
     public boolean existsByUsername(String username) {
-        return findAll().stream().anyMatch(t -> username.equals(t.getUsername()));
+        return findAll().stream()
+                .anyMatch(t -> username.equals(t.getUsername()));
     }
 }
