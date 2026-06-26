@@ -108,4 +108,13 @@ public class TraineeService {
         return traineeMapper.toDTO(updated);
     }
 
+    @Transactional
+    public void deleteTraineeByUsername(String username) {
+        log.info("Deleting trainee profile. username={}", username);
+        Trainee trainee = traineeDao.findByUsername(username)
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Trainee not found: " + username));
+        traineeDao.delete(trainee);
+        log.info("Trainee profile deleted successfully. username={}", username);
+    }
 }
