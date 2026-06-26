@@ -1,0 +1,8 @@
+package com.berruhanedar.app.gym_springboot.exception;
+
+public class AuthenticationException extends RuntimeException {
+
+    public AuthenticationException(String message) {
+        super(message);
+    }
+}
