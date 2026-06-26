@@ -2,6 +2,7 @@ package com.berruhanedar.app.gym_springboot.service;
 
 import com.berruhanedar.app.gym_springboot.dao.TrainerDao;
 import com.berruhanedar.app.gym_springboot.dto.*;
+import com.berruhanedar.app.gym_springboot.entity.Trainee;
 import com.berruhanedar.app.gym_springboot.entity.Trainer;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TrainerMapper;
@@ -73,5 +74,17 @@ public class TrainerService {
                         new EntityNotFoundException("Trainer not found: " + username));
 
         return trainerMapper.toDTO(trainer);
+    }
+
+    @Transactional
+    public void changePassword(String username, String newPassword) {
+
+        Trainer trainer = trainerDao.findByUsername(username)
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Trainer not found."));
+
+        trainer.setPassword(newPassword);
+
+        trainerDao.update(trainer);
     }
 }
