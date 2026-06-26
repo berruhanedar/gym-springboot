@@ -5,6 +5,8 @@ import com.berruhanedar.app.gym_springboot.dao.TrainerDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.stream.Stream;
+
 import java.security.SecureRandom;
 
 @Component
@@ -33,21 +35,28 @@ public class CredentialGenerator {
     }
 
     public String generateUsername(String firstName, String lastName) {
+        String baseUsername = firstName.trim() + USERNAME_SEPARATOR + lastName.trim();
 
-        String baseUsername =
-                firstName.trim() + USERNAME_SEPARATOR + lastName.trim();
+        int maxSuffix = Stream.concat(
+                        traineeDao.findAllUsernames().stream(),
+                        trainerDao.findAllUsernames().stream()
+                )
+                .filter(username -> username.equals(baseUsername)
+                        || username.startsWith(baseUsername)
+                        && username.substring(baseUsername.length()).matches("\\d+"))
+                .mapToInt(username -> extractSuffix(username, baseUsername))
+                .max()
+                .orElse(-1);
 
-        String username = baseUsername;
-        int suffix = 1;
+        return maxSuffix == -1 ? baseUsername : baseUsername + (maxSuffix + 1);
+    }
 
-        while (traineeDao.existsByUsername(username)
-                || trainerDao.existsByUsername(username)) {
-
-            username = baseUsername + suffix;
-            suffix++;
+    private int extractSuffix(String username, String baseUsername) {
+        if (username.equals(baseUsername)) {
+            return 0;
         }
 
-        return username;
+        return Integer.parseInt(username.substring(baseUsername.length()));
     }
 
     public String generatePassword() {
