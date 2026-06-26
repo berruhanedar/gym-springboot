@@ -5,6 +5,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,5 +36,61 @@ public class TrainingDao {
 
     public void delete(Training training) {
         entityManager.remove(training);
+    }
+
+    public List<Training> findByTraineeUsernameAndCriteria(
+            String traineeUsername,
+            LocalDate fromDate,
+            LocalDate toDate,
+            String trainerName,
+            String trainingType
+    ) {
+        StringBuilder jpql = new StringBuilder("""
+            SELECT tr
+            FROM Training tr
+            WHERE tr.trainee.username = :traineeUsername
+            """);
+
+        if (fromDate != null) {
+            jpql.append(" AND tr.trainingDate >= :fromDate");
+        }
+
+        if (toDate != null) {
+            jpql.append(" AND tr.trainingDate <= :toDate");
+        }
+
+        if (trainerName != null && !trainerName.isBlank()) {
+            jpql.append("""
+                AND LOWER(CONCAT(tr.trainer.firstName, ' ', tr.trainer.lastName))
+                LIKE LOWER(:trainerName)
+                """);
+        }
+
+        if (trainingType != null && !trainingType.isBlank()) {
+            jpql.append("""
+                AND LOWER(tr.trainingType.trainingTypeName) = LOWER(:trainingType)
+                """);
+        }
+
+        var query = entityManager.createQuery(jpql.toString(), Training.class);
+        query.setParameter("traineeUsername", traineeUsername);
+
+        if (fromDate != null) {
+            query.setParameter("fromDate", fromDate);
+        }
+
+        if (toDate != null) {
+            query.setParameter("toDate", toDate);
+        }
+
+        if (trainerName != null && !trainerName.isBlank()) {
+            query.setParameter("trainerName", "%" + trainerName + "%");
+        }
+
+        if (trainingType != null && !trainingType.isBlank()) {
+            query.setParameter("trainingType", trainingType);
+        }
+
+        return query.getResultList();
     }
 }
