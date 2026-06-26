@@ -2,7 +2,6 @@ package com.berruhanedar.app.gym_springboot.service;
 
 import com.berruhanedar.app.gym_springboot.dao.TrainerDao;
 import com.berruhanedar.app.gym_springboot.dto.*;
-import com.berruhanedar.app.gym_springboot.entity.Trainee;
 import com.berruhanedar.app.gym_springboot.entity.Trainer;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TrainerMapper;
@@ -46,6 +45,7 @@ public class TrainerService {
         return trainerMapper.toDTO(saved);
     }
 
+    @Transactional
     public TrainerResponseDTO updateTrainer(UpdateTrainerRequestDTO dto) {
         log.info("Updating trainer profile. id={}", dto.getId());
         Trainer trainer = trainerDao.findById(dto.getId())
@@ -55,7 +55,7 @@ public class TrainerService {
         trainerMapper.updateFromDTO(dto, trainer);
         trainer.setUsername(existingUsername);
         trainer.setPassword(existingPassword);
-        Trainer updated = trainerDao.save(trainer);
+        Trainer updated = trainerDao.update(trainer);
         log.info("Trainer profile updated successfully. id={}", updated.getId());
         return trainerMapper.toDTO(updated);
     }
