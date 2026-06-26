@@ -1,5 +1,6 @@
 package com.berruhanedar.app.gym_springboot.dto;
 
+import com.berruhanedar.app.gym_springboot.entity.TrainingType;
 import lombok.Data;
 
 @Data
@@ -9,5 +10,5 @@ public class TrainerResponseDTO {
     private String lastName;
     private String username;
     private Boolean isActive;
-    private String specialization;
+    private TrainingType specialization;
 }

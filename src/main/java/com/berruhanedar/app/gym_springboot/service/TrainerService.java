@@ -10,13 +10,13 @@ import com.berruhanedar.app.gym_springboot.util.CredentialGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
 public class TrainerService {
     private TrainerDao trainerDao;
     private TrainerMapper trainerMapper;
-    private IdGenerator idGenerator;
     private CredentialGenerator credentialGenerator;
 
     @Autowired
@@ -30,19 +30,14 @@ public class TrainerService {
     }
 
     @Autowired
-    public void setIdGenerator(IdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
-    }
-
-    @Autowired
     public void setCredentialGenerator(CredentialGenerator credentialGenerator) {
         this.credentialGenerator = credentialGenerator;
     }
 
+    @Transactional
     public TrainerResponseDTO createTrainer(NewTrainerRequestDTO dto) {
         log.info("Creating trainer profile for {} {}", dto.getFirstName(), dto.getLastName());
         Trainer trainer = trainerMapper.toEntity(dto);
-        trainer.setId(idGenerator.nextTrainerId());
         trainer.setUsername(credentialGenerator.generateUsername(dto.getFirstName(), dto.getLastName()));
         trainer.setPassword(credentialGenerator.generatePassword());
         trainer.setIsActive(true);
