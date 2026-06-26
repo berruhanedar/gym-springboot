@@ -52,13 +52,4 @@ public class TraineeDao {
                 .getResultList();
     }
 
-    public boolean existsByUsername(String username) {
-        Long count = entityManager.createQuery(
-                        "SELECT COUNT(t) FROM Trainee t WHERE t.username = :username",
-                        Long.class)
-                .setParameter("username", username)
-                .getSingleResult();
-
-        return count > 0;
-    }
 }

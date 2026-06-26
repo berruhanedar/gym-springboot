@@ -71,4 +71,14 @@ public class TraineeService {
         return traineeMapper.toDTO(traineeDao.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found. id=" + id)));
     }
+
+    @Transactional(readOnly = true)
+    public TraineeResponseDTO getTraineeByUsername(String username) {
+
+        Trainee trainee = traineeDao.findByUsername(username)
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Trainee not found: " + username));
+
+        return traineeMapper.toDTO(trainee);
+    }
 }
