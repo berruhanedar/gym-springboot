@@ -1,8 +1,8 @@
 package com.berruhanedar.app.gym_springboot.dao;
 
 import com.berruhanedar.app.gym_springboot.entity.TrainingType;
-import com.berruhanedar.app.gym_springboot.storage.TrainingTypeStorage;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -10,23 +10,32 @@ import java.util.Optional;
 
 @Repository
 public class TrainingTypeDao {
-    private TrainingTypeStorage storage;
 
-    @Autowired
-    public void setStorage(TrainingTypeStorage storage) {
-        this.storage = storage;
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    public TrainingType save(TrainingType trainingType) {
+        entityManager.persist(trainingType);
+        return trainingType;
     }
 
-    public TrainingType save(TrainingType type) {
-        storage.getData().put(type.getId(), type);
-        return type;
+    public Optional<TrainingType> findById(Long id) {
+        return Optional.ofNullable(entityManager.find(TrainingType.class, id));
     }
 
     public Optional<TrainingType> findByName(String name) {
-        return storage.getData().values().stream().filter(t -> t.getTrainingTypeName().equalsIgnoreCase(name)).findFirst();
+        return entityManager.createQuery(
+                        "SELECT t FROM TrainingType t WHERE LOWER(t.trainingTypeName) = LOWER(:name)",
+                        TrainingType.class)
+                .setParameter("name", name)
+                .getResultStream()
+                .findFirst();
     }
 
     public List<TrainingType> findAll() {
-        return List.copyOf(storage.getData().values());
+        return entityManager.createQuery(
+                        "SELECT t FROM TrainingType t",
+                        TrainingType.class)
+                .getResultList();
     }
 }

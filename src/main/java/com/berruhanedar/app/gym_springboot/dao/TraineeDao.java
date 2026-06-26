@@ -1,8 +1,8 @@
 package com.berruhanedar.app.gym_springboot.dao;
 
 import com.berruhanedar.app.gym_springboot.entity.Trainee;
-import com.berruhanedar.app.gym_springboot.storage.TraineeStorage;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -10,38 +10,55 @@ import java.util.Optional;
 
 @Repository
 public class TraineeDao {
-    private TraineeStorage storage;
 
-    @Autowired
-    public void setStorage(TraineeStorage storage) {
-        this.storage = storage;
-    }
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public Trainee save(Trainee trainee) {
-        storage.getData().put(trainee.getId(), trainee);
+        entityManager.persist(trainee);
         return trainee;
     }
 
     public Optional<Trainee> findById(Long id) {
-        return Optional.ofNullable(storage.getData().get(id));
+        return Optional.ofNullable(entityManager.find(Trainee.class, id));
     }
 
     public List<Trainee> findAll() {
-        return List.copyOf(storage.getData().values());
+        return entityManager.createQuery(
+                        "SELECT t FROM Trainee t", Trainee.class)
+                .getResultList();
     }
 
-    public void delete(Long id) {
-        storage.getData().remove(id);
+    public Trainee update(Trainee trainee) {
+        return entityManager.merge(trainee);
+    }
+
+    public void delete(Trainee trainee) {
+        entityManager.remove(trainee);
+    }
+
+    public Optional<Trainee> findByUsername(String username) {
+        return entityManager.createQuery(
+                        "SELECT t FROM Trainee t WHERE t.username = :username",
+                        Trainee.class)
+                .setParameter("username", username)
+                .getResultStream()
+                .findFirst();
     }
 
     public List<String> findAllUsernames() {
-        return findAll().stream()
-                .map(Trainee::getUsername)
-                .toList();
+        return entityManager.createQuery(
+                        "SELECT t.username FROM Trainee t", String.class)
+                .getResultList();
     }
 
     public boolean existsByUsername(String username) {
-        return findAll().stream()
-                .anyMatch(t -> username.equals(t.getUsername()));
+        Long count = entityManager.createQuery(
+                        "SELECT COUNT(t) FROM Trainee t WHERE t.username = :username",
+                        Long.class)
+                .setParameter("username", username)
+                .getSingleResult();
+
+        return count > 0;
     }
 }
