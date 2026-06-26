@@ -68,23 +68,31 @@ public class TrainerService {
 
     @Transactional(readOnly = true)
     public TrainerResponseDTO getTrainerByUsername(String username) {
-
         Trainer trainer = trainerDao.findByUsername(username)
                 .orElseThrow(() ->
                         new EntityNotFoundException("Trainer not found: " + username));
-
         return trainerMapper.toDTO(trainer);
     }
 
     @Transactional
     public void changePassword(String username, String newPassword) {
-
         Trainer trainer = trainerDao.findByUsername(username)
                 .orElseThrow(() ->
                         new EntityNotFoundException("Trainer not found."));
-
         trainer.setPassword(newPassword);
-
         trainerDao.update(trainer);
+    }
+
+    @Transactional
+    public TrainerResponseDTO changeActivationStatus(String username) {
+        log.info("Changing trainer activation status. username={}", username);
+        Trainer trainer = trainerDao.findByUsername(username)
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Trainer not found: " + username));
+        trainer.setIsActive(!trainer.getIsActive());
+        Trainer updated = trainerDao.update(trainer);
+        log.info("Trainer activation status changed. username={}, isActive={}",
+                username, updated.getIsActive());
+        return trainerMapper.toDTO(updated);
     }
 }

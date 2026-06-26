@@ -23,6 +23,7 @@ public class NewTrainingRequestDTO {
     private String trainingTypeName;
 
     @NotNull
+    @FutureOrPresent
     private LocalDate trainingDate;
 
     @NotNull
