@@ -61,4 +61,19 @@ public class TrainerDao {
 
         return count > 0;
     }
+
+    public List<Trainer> findTrainersNotAssignedToTrainee(String traineeUsername) {
+        return entityManager.createQuery("""
+            SELECT tr
+            FROM Trainer tr
+            WHERE tr.id NOT IN (
+                SELECT assignedTrainer.id
+                FROM Trainee te
+                JOIN te.trainers assignedTrainer
+                WHERE te.username = :traineeUsername
+            )
+            """, Trainer.class)
+                .setParameter("traineeUsername", traineeUsername)
+                .getResultList();
+    }
 }

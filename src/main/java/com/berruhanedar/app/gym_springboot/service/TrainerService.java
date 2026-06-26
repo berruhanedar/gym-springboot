@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Slf4j
 @Service
 public class TrainerService {
@@ -94,5 +96,15 @@ public class TrainerService {
         log.info("Trainer activation status changed. username={}, isActive={}",
                 username, updated.getIsActive());
         return trainerMapper.toDTO(updated);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TrainerResponseDTO> getTrainersNotAssignedToTrainee(String traineeUsername) {
+        log.info("Getting trainers not assigned to trainee. traineeUsername={}", traineeUsername);
+
+        return trainerDao.findTrainersNotAssignedToTrainee(traineeUsername)
+                .stream()
+                .map(trainerMapper::toDTO)
+                .toList();
     }
 }
