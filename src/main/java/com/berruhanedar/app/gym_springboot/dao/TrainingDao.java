@@ -93,4 +93,49 @@ public class TrainingDao {
 
         return query.getResultList();
     }
+
+    public List<Training> findByTrainerUsernameAndCriteria(
+            String trainerUsername,
+            LocalDate fromDate,
+            LocalDate toDate,
+            String traineeName
+    ) {
+        StringBuilder jpql = new StringBuilder("""
+            SELECT tr
+            FROM Training tr
+            WHERE tr.trainer.username = :trainerUsername
+            """);
+
+        if (fromDate != null) {
+            jpql.append(" AND tr.trainingDate >= :fromDate");
+        }
+
+        if (toDate != null) {
+            jpql.append(" AND tr.trainingDate <= :toDate");
+        }
+
+        if (traineeName != null && !traineeName.isBlank()) {
+            jpql.append("""
+                AND LOWER(CONCAT(tr.trainee.firstName, ' ', tr.trainee.lastName))
+                LIKE LOWER(:traineeName)
+                """);
+        }
+
+        var query = entityManager.createQuery(jpql.toString(), Training.class);
+        query.setParameter("trainerUsername", trainerUsername);
+
+        if (fromDate != null) {
+            query.setParameter("fromDate", fromDate);
+        }
+
+        if (toDate != null) {
+            query.setParameter("toDate", toDate);
+        }
+
+        if (traineeName != null && !traineeName.isBlank()) {
+            query.setParameter("traineeName", "%" + traineeName + "%");
+        }
+
+        return query.getResultList();
+    }
 }

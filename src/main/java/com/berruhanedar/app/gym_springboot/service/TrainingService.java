@@ -98,6 +98,24 @@ public class TrainingService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<TrainingResponseDTO> getTrainerTrainings(
+            String trainerUsername,
+            LocalDate fromDate,
+            LocalDate toDate,
+            String traineeName
+    ) {
+        return trainingDao.findByTrainerUsernameAndCriteria(
+                        trainerUsername,
+                        fromDate,
+                        toDate,
+                        traineeName
+                )
+                .stream()
+                .map(trainingMapper::toDTO)
+                .toList();
+    }
+
     private TrainingType getTrainingType(String trainingTypeName) {
         return trainingTypeDao.findByName(trainingTypeName)
                 .orElseThrow(() ->
