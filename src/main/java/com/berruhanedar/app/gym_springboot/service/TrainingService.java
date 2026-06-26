@@ -53,8 +53,6 @@ public class TrainingService {
 
     @Transactional
     public TrainingResponseDTO createTraining(NewTrainingRequestDTO dto) {
-        log.info("Creating training profile. traineeId={}, trainerId={}",
-                dto.getTraineeId(), dto.getTrainerId());
         Trainee trainee = traineeDao.findById(dto.getTraineeId())
                 .orElseThrow(() ->
                         new EntityNotFoundException("Trainee not found. id=" + dto.getTraineeId()));
@@ -66,7 +64,6 @@ public class TrainingService {
         training.setTrainer(trainer);
         training.setTrainingType(getTrainingType(dto.getTrainingTypeName()));
         Training saved = trainingDao.save(training);
-        log.info("Training profile created successfully. id={}", saved.getId());
         return trainingMapper.toDTO(saved);
     }
 
