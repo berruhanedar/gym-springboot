@@ -25,6 +25,7 @@ public class TrainingService {
     private TrainerDao trainerDao;
     private TrainingTypeDao trainingTypeDao;
     private TrainingMapper trainingMapper;
+    private AuthenticationService authenticationService;
 
     @Autowired
     public void setTrainingDao(TrainingDao trainingDao) {
@@ -51,8 +52,14 @@ public class TrainingService {
         this.trainingMapper = trainingMapper;
     }
 
+    @Autowired
+    public void setAuthenticationService(AuthenticationService authenticationService) {
+        this.authenticationService = authenticationService;
+    }
+
     @Transactional
-    public TrainingResponseDTO createTraining(NewTrainingRequestDTO dto) {
+    public TrainingResponseDTO createTraining(CredentialsDTO trainerCredentials, NewTrainingRequestDTO dto) {
+        authenticationService.authenticateTrainer(trainerCredentials);
         Trainee trainee = traineeDao.findById(dto.getTraineeId())
                 .orElseThrow(() ->
                         new EntityNotFoundException("Trainee not found. id=" + dto.getTraineeId()));
@@ -68,21 +75,25 @@ public class TrainingService {
     }
 
     @Transactional(readOnly = true)
-    public TrainingResponseDTO getTraining(Long id) {
+    public TrainingResponseDTO getTraining(CredentialsDTO credentials, Long id) {
+        authenticationService.authenticateTrainee(credentials);
         log.debug("Selecting training profile. id={}", id);
-        return trainingMapper.toDTO(trainingDao.findById(id)
+        Training training = trainingDao.findById(id)
                 .orElseThrow(() ->
-                        new EntityNotFoundException("Training not found. id=" + id)));
+                        new EntityNotFoundException("Training not found. id=" + id));
+        return trainingMapper.toDTO(training);
     }
 
     @Transactional(readOnly = true)
     public List<TrainingResponseDTO> getTraineeTrainings(
+            CredentialsDTO traineeCredentials,
             String traineeUsername,
             LocalDate fromDate,
             LocalDate toDate,
             String trainerName,
             String trainingType
     ) {
+        authenticationService.authenticateTrainee(traineeCredentials);
         return trainingDao.findByTraineeUsernameAndCriteria(
                         traineeUsername,
                         fromDate,
@@ -97,11 +108,13 @@ public class TrainingService {
 
     @Transactional(readOnly = true)
     public List<TrainingResponseDTO> getTrainerTrainings(
+            CredentialsDTO trainerCredentials,
             String trainerUsername,
             LocalDate fromDate,
             LocalDate toDate,
             String traineeName
     ) {
+        authenticationService.authenticateTrainer(trainerCredentials);
         return trainingDao.findByTrainerUsernameAndCriteria(
                         trainerUsername,
                         fromDate,

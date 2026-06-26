@@ -19,10 +19,12 @@ import java.util.List;
 @Slf4j
 @Service
 public class TraineeService {
+
     private TraineeDao traineeDao;
     private TrainerDao trainerDao;
     private TraineeMapper traineeMapper;
     private CredentialGenerator credentialGenerator;
+    private AuthenticationService authenticationService;
 
     @Autowired
     public void setTraineeDao(TraineeDao traineeDao) {
@@ -44,6 +46,11 @@ public class TraineeService {
         this.credentialGenerator = credentialGenerator;
     }
 
+    @Autowired
+    public void setAuthenticationService(AuthenticationService authenticationService) {
+        this.authenticationService = authenticationService;
+    }
+
     @Transactional
     public TraineeResponseDTO createTrainee(NewTraineeRequestDTO dto) {
         log.info("Creating trainee profile for {} {}", dto.getFirstName(), dto.getLastName());
@@ -57,7 +64,8 @@ public class TraineeService {
     }
 
     @Transactional
-    public TraineeResponseDTO updateTrainee(UpdateTraineeRequestDTO dto) {
+    public TraineeResponseDTO updateTrainee(CredentialsDTO credentials, UpdateTraineeRequestDTO dto) {
+        authenticationService.authenticateTrainee(credentials);
         log.info("Updating trainee profile. id={}", dto.getId());
         Trainee trainee = traineeDao.findById(dto.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found. id=" + dto.getId()));
@@ -72,7 +80,8 @@ public class TraineeService {
     }
 
     @Transactional
-    public void deleteTrainee(Long id) {
+    public void deleteTrainee(CredentialsDTO credentials, Long id) {
+        authenticationService.authenticateTrainee(credentials);
         log.info("Deleting trainee profile. id={}", id);
         Trainee trainee = traineeDao.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found. id=" + id));
@@ -81,69 +90,67 @@ public class TraineeService {
     }
 
     @Transactional(readOnly = true)
-    public TraineeResponseDTO getTrainee(Long id) {
+    public TraineeResponseDTO getTrainee(CredentialsDTO credentials, Long id) {
+        authenticationService.authenticateTrainee(credentials);
         log.debug("Selecting trainee profile. id={}", id);
-        return traineeMapper.toDTO(traineeDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found. id=" + id)));
+        Trainee trainee = traineeDao.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found. id=" + id));
+        return traineeMapper.toDTO(trainee);
     }
 
     @Transactional(readOnly = true)
-    public TraineeResponseDTO getTraineeByUsername(String username) {
-
+    public TraineeResponseDTO getTraineeByUsername(CredentialsDTO credentials, String username) {
+        authenticationService.authenticateTrainee(credentials);
         Trainee trainee = traineeDao.findByUsername(username)
-                .orElseThrow(() ->
-                        new EntityNotFoundException("Trainee not found: " + username));
-
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + username));
         return traineeMapper.toDTO(trainee);
     }
 
     @Transactional
-    public void changePassword(String username, String newPassword) {
-        Trainee trainee = traineeDao.findByUsername(username)
-                .orElseThrow(() ->
-                        new EntityNotFoundException("Trainee not found."));
+    public void changePassword(CredentialsDTO credentials, String newPassword) {
+        authenticationService.authenticateTrainee(credentials);
+        Trainee trainee = traineeDao.findByUsername(credentials.getUsername())
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found."));
         trainee.setPassword(newPassword);
         traineeDao.update(trainee);
     }
 
     @Transactional
-    public TraineeResponseDTO changeActivationStatus(String username) {
-        log.info("Changing trainee activation status. username={}", username);
-        Trainee trainee = traineeDao.findByUsername(username)
-                .orElseThrow(() ->
-                        new EntityNotFoundException("Trainee not found: " + username));
+    public TraineeResponseDTO changeActivationStatus(CredentialsDTO credentials) {
+        authenticationService.authenticateTrainee(credentials);
+        log.info("Changing trainee activation status. username={}", credentials.getUsername());
+        Trainee trainee = traineeDao.findByUsername(credentials.getUsername())
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + credentials.getUsername()));
         trainee.setIsActive(!trainee.getIsActive());
         Trainee updated = traineeDao.update(trainee);
         log.info("Trainee activation status changed. username={}, isActive={}",
-                username, updated.getIsActive());
+                credentials.getUsername(), updated.getIsActive());
         return traineeMapper.toDTO(updated);
     }
 
     @Transactional
-    public void deleteTraineeByUsername(String username) {
+    public void deleteTraineeByUsername(CredentialsDTO credentials, String username) {
+        authenticationService.authenticateTrainee(credentials);
         log.info("Deleting trainee profile. username={}", username);
         Trainee trainee = traineeDao.findByUsername(username)
-                .orElseThrow(() ->
-                        new EntityNotFoundException("Trainee not found: " + username));
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + username));
         traineeDao.delete(trainee);
         log.info("Trainee profile deleted successfully. username={}", username);
     }
 
     @Transactional
-    public TraineeResponseDTO updateTraineeTrainers(UpdateTraineeTrainersRequestDTO dto) {
+    public TraineeResponseDTO updateTraineeTrainers(CredentialsDTO credentials, UpdateTraineeTrainersRequestDTO dto) {
+        authenticationService.authenticateTrainee(credentials);
         log.info("Updating trainee trainers list. username={}", dto.getTraineeUsername());
         Trainee trainee = traineeDao.findByUsername(dto.getTraineeUsername())
-                .orElseThrow(() ->
-                        new EntityNotFoundException("Trainee not found: " + dto.getTraineeUsername()));
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + dto.getTraineeUsername()));
         List<Trainer> trainers = trainerDao.findAllByIds(dto.getTrainerIds());
-
         if (trainers.size() != dto.getTrainerIds().size()) {
             throw new EntityNotFoundException("One or more trainers not found.");
         }
         trainee.setTrainers(new HashSet<>(trainers));
         Trainee updated = traineeDao.update(trainee);
-        log.info("Trainee trainers list updated successfully. username={}",
-                dto.getTraineeUsername());
+        log.info("Trainee trainers list updated successfully. username={}", dto.getTraineeUsername());
         return traineeMapper.toDTO(updated);
     }
 }
