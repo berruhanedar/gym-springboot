@@ -24,12 +24,13 @@ public class GymSpringbootApplication {
             request.setDateOfBirth(LocalDate.of(2000, 1, 1));
             request.setAddress("Istanbul");
 
-            TraineeResponseDTO response = gymFacade.createTrainee(request);
+            TraineeResponseDTO trainee = gymFacade.createTrainee(request);
 
+            log.info("Application started successfully.");
             log.info("Demo trainee created. id={}, username={}, active={}",
-                    response.getId(),
-                    response.getUsername(),
-                    response.getIsActive());
+                    trainee.getId(),
+                    trainee.getUsername(),
+                    trainee.getIsActive());
         }
     }
 }

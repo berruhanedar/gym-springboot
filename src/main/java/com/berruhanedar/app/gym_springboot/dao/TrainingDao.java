@@ -52,23 +52,23 @@ public class TrainingDao {
             """);
 
         if (fromDate != null) {
-            jpql.append(" AND tr.trainingDate >= :fromDate");
+            jpql.append(" AND tr.trainingDate >= :fromDate ");
         }
 
         if (toDate != null) {
-            jpql.append(" AND tr.trainingDate <= :toDate");
+            jpql.append(" AND tr.trainingDate <= :toDate ");
         }
 
         if (trainerName != null && !trainerName.isBlank()) {
             jpql.append("""
-                AND LOWER(CONCAT(tr.trainer.firstName, ' ', tr.trainer.lastName))
+                 AND LOWER(CONCAT(tr.trainer.firstName, ' ', tr.trainer.lastName))
                 LIKE LOWER(:trainerName)
                 """);
         }
 
         if (trainingType != null && !trainingType.isBlank()) {
             jpql.append("""
-                AND LOWER(tr.trainingType.trainingTypeName) = LOWER(:trainingType)
+                 AND LOWER(tr.trainingType.trainingTypeName) = LOWER(:trainingType)
                 """);
         }
 
@@ -107,16 +107,16 @@ public class TrainingDao {
             """);
 
         if (fromDate != null) {
-            jpql.append(" AND tr.trainingDate >= :fromDate");
+            jpql.append(" AND tr.trainingDate >= :fromDate ");
         }
 
         if (toDate != null) {
-            jpql.append(" AND tr.trainingDate <= :toDate");
+            jpql.append(" AND tr.trainingDate <= :toDate ");
         }
 
         if (traineeName != null && !traineeName.isBlank()) {
             jpql.append("""
-                AND LOWER(CONCAT(tr.trainee.firstName, ' ', tr.trainee.lastName))
+                 AND LOWER(CONCAT(tr.trainee.firstName, ' ', tr.trainee.lastName))
                 LIKE LOWER(:traineeName)
                 """);
         }
