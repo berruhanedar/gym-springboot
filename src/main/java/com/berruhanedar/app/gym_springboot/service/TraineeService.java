@@ -88,13 +88,24 @@ public class TraineeService {
 
     @Transactional
     public void changePassword(String username, String newPassword) {
-
         Trainee trainee = traineeDao.findByUsername(username)
                 .orElseThrow(() ->
                         new EntityNotFoundException("Trainee not found."));
-
         trainee.setPassword(newPassword);
-
         traineeDao.update(trainee);
     }
+
+    @Transactional
+    public TraineeResponseDTO changeActivationStatus(String username) {
+        log.info("Changing trainee activation status. username={}", username);
+        Trainee trainee = traineeDao.findByUsername(username)
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Trainee not found: " + username));
+        trainee.setIsActive(!trainee.getIsActive());
+        Trainee updated = traineeDao.update(trainee);
+        log.info("Trainee activation status changed. username={}, isActive={}",
+                username, updated.getIsActive());
+        return traineeMapper.toDTO(updated);
+    }
+
 }
