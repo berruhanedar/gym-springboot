@@ -5,18 +5,17 @@ import com.berruhanedar.app.gym_springboot.dto.*;
 import com.berruhanedar.app.gym_springboot.entity.Trainee;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TraineeMapper;
-import com.berruhanedar.app.gym_springboot.storage.IdGenerator;
 import com.berruhanedar.app.gym_springboot.util.CredentialGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
 public class TraineeService {
     private TraineeDao traineeDao;
     private TraineeMapper traineeMapper;
-    private IdGenerator idGenerator;
     private CredentialGenerator credentialGenerator;
 
     @Autowired
@@ -30,19 +29,14 @@ public class TraineeService {
     }
 
     @Autowired
-    public void setIdGenerator(IdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
-    }
-
-    @Autowired
     public void setCredentialGenerator(CredentialGenerator credentialGenerator) {
         this.credentialGenerator = credentialGenerator;
     }
 
+    @Transactional
     public TraineeResponseDTO createTrainee(NewTraineeRequestDTO dto) {
         log.info("Creating trainee profile for {} {}", dto.getFirstName(), dto.getLastName());
         Trainee trainee = traineeMapper.toEntity(dto);
-        trainee.setId(idGenerator.nextTraineeId());
         trainee.setUsername(credentialGenerator.generateUsername(dto.getFirstName(), dto.getLastName()));
         trainee.setPassword(credentialGenerator.generatePassword());
         trainee.setIsActive(true);
