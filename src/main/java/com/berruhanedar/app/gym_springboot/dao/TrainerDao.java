@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public class TrainerDao {
@@ -74,6 +75,16 @@ public class TrainerDao {
             )
             """, Trainer.class)
                 .setParameter("traineeUsername", traineeUsername)
+                .getResultList();
+    }
+
+    public List<Trainer> findAllByIds(Set<Long> ids) {
+        return entityManager.createQuery("""
+            SELECT t
+            FROM Trainer t
+            WHERE t.id IN :ids
+            """, Trainer.class)
+                .setParameter("ids", ids)
                 .getResultList();
     }
 }

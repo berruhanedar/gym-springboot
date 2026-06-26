@@ -1,8 +1,10 @@
 package com.berruhanedar.app.gym_springboot.service;
 
 import com.berruhanedar.app.gym_springboot.dao.TraineeDao;
+import com.berruhanedar.app.gym_springboot.dao.TrainerDao;
 import com.berruhanedar.app.gym_springboot.dto.*;
 import com.berruhanedar.app.gym_springboot.entity.Trainee;
+import com.berruhanedar.app.gym_springboot.entity.Trainer;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TraineeMapper;
 import com.berruhanedar.app.gym_springboot.util.CredentialGenerator;
@@ -11,16 +13,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
+import java.util.List;
+
 @Slf4j
 @Service
 public class TraineeService {
     private TraineeDao traineeDao;
+    private TrainerDao trainerDao;
     private TraineeMapper traineeMapper;
     private CredentialGenerator credentialGenerator;
 
     @Autowired
     public void setTraineeDao(TraineeDao traineeDao) {
         this.traineeDao = traineeDao;
+    }
+
+    @Autowired
+    public void setTrainerDao(TrainerDao trainerDao) {
+        this.trainerDao = trainerDao;
     }
 
     @Autowired
@@ -116,5 +127,23 @@ public class TraineeService {
                         new EntityNotFoundException("Trainee not found: " + username));
         traineeDao.delete(trainee);
         log.info("Trainee profile deleted successfully. username={}", username);
+    }
+
+    @Transactional
+    public TraineeResponseDTO updateTraineeTrainers(UpdateTraineeTrainersRequestDTO dto) {
+        log.info("Updating trainee trainers list. username={}", dto.getTraineeUsername());
+        Trainee trainee = traineeDao.findByUsername(dto.getTraineeUsername())
+                .orElseThrow(() ->
+                        new EntityNotFoundException("Trainee not found: " + dto.getTraineeUsername()));
+        List<Trainer> trainers = trainerDao.findAllByIds(dto.getTrainerIds());
+
+        if (trainers.size() != dto.getTrainerIds().size()) {
+            throw new EntityNotFoundException("One or more trainers not found.");
+        }
+        trainee.setTrainers(new HashSet<>(trainers));
+        Trainee updated = traineeDao.update(trainee);
+        log.info("Trainee trainers list updated successfully. username={}",
+                dto.getTraineeUsername());
+        return traineeMapper.toDTO(updated);
     }
 }
