@@ -53,7 +53,8 @@ class TrainerServiceTest {
         assertThat(response.getId()).isNotNull();
         assertThat(response.getUsername()).isEqualTo("Daniel.Anderson");
         assertThat(response.getIsActive()).isTrue();
-        assertThat(response.getSpecialization().getTrainingTypeName()).isEqualTo("Boxing");
+        assertThat(response.getSpecializationName())
+                .isEqualTo("Boxing");
         assertThat(findTrainerEntity(response.getUsername()).getPassword()).hasSize(10);
     }
 
@@ -82,7 +83,7 @@ class TrainerServiceTest {
         update.setId(saved.getId());
         update.setFirstName("Tom");
         update.setLastName("Black");
-        update.setSpecialization(pilates);
+        update.setSpecializationName("Pilates");
         update.setIsActive(false);
 
         TrainerResponseDTO updated = gymFacade.updateTrainer(credentials, update);
@@ -90,7 +91,8 @@ class TrainerServiceTest {
         assertThat(updated.getFirstName()).isEqualTo("Tom");
         assertThat(updated.getLastName()).isEqualTo("Black");
         assertThat(updated.getUsername()).isEqualTo(saved.getUsername());
-        assertThat(updated.getSpecialization().getTrainingTypeName()).isEqualTo("Pilates");
+        assertThat(updated.getSpecializationName())
+                .isEqualTo("Pilates");
         assertThat(updated.getIsActive()).isFalse();
         assertThat(trainerCredentials(saved).getPassword()).isEqualTo(oldPassword);
     }
@@ -162,7 +164,7 @@ class TrainerServiceTest {
         update.setId(999L);
         update.setFirstName("Missing");
         update.setLastName("Trainer");
-        update.setSpecialization(ensureTrainingType("Fitness"));
+        update.setSpecializationName("Fitness");
         update.setIsActive(true);
 
         assertThatThrownBy(() -> gymFacade.updateTrainer(validCredentials, update))
@@ -177,11 +179,16 @@ class TrainerServiceTest {
         return gymFacade.createTrainee(dto);
     }
 
-    private TrainerResponseDTO createTrainer(String firstName, String lastName, TrainingType specialization) {
+    private TrainerResponseDTO createTrainer(
+            String firstName,
+            String lastName,
+            TrainingType specialization) {
+
         NewTrainerRequestDTO dto = new NewTrainerRequestDTO();
         dto.setFirstName(firstName);
         dto.setLastName(lastName);
-        dto.setSpecialization(specialization);
+        dto.setSpecializationName(specialization.getTrainingTypeName());
+
         return gymFacade.createTrainer(dto);
     }
 

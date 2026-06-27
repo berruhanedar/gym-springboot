@@ -198,11 +198,13 @@ class TraineeServiceTest {
         return gymFacade.createTrainee(dto);
     }
 
-    private TrainerResponseDTO createTrainer(String firstName, String lastName, TrainingType specialization) {
+    private TrainerResponseDTO createTrainer(String firstName,
+                                             String lastName,
+                                             TrainingType specialization) {
         NewTrainerRequestDTO dto = new NewTrainerRequestDTO();
         dto.setFirstName(firstName);
         dto.setLastName(lastName);
-        dto.setSpecialization(specialization);
+        dto.setSpecializationName(specialization.getTrainingTypeName());
         return gymFacade.createTrainer(dto);
     }
 

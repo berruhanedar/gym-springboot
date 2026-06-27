@@ -10,5 +10,5 @@ public class TrainerResponseDTO {
     private String lastName;
     private String username;
     private Boolean isActive;
-    private TrainingType specialization;
+    private String specializationName;
 }

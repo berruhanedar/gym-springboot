@@ -29,13 +29,16 @@ public class TrainingDao {
     }
 
     public List<Training> findAll() {
-        return entityManager.createQuery(
-                        "SELECT t FROM Training t", Training.class)
+        return entityManager.createQuery("SELECT training FROM Training training", Training.class)
                 .getResultList();
     }
 
     public void delete(Training training) {
-        entityManager.remove(training);
+        Training managedTraining = entityManager.contains(training)
+                ? training
+                : entityManager.merge(training);
+
+        entityManager.remove(managedTraining);
     }
 
     public List<Training> findByTraineeUsernameAndCriteria(
@@ -46,30 +49,30 @@ public class TrainingDao {
             String trainingType
     ) {
         StringBuilder jpql = new StringBuilder("""
-            SELECT tr
-            FROM Training tr
-            WHERE tr.trainee.username = :traineeUsername
-            """);
+                SELECT training
+                FROM Training training
+                WHERE training.trainee.username = :traineeUsername
+                """);
 
         if (fromDate != null) {
-            jpql.append(" AND tr.trainingDate >= :fromDate ");
+            jpql.append(" AND training.trainingDate >= :fromDate ");
         }
 
         if (toDate != null) {
-            jpql.append(" AND tr.trainingDate <= :toDate ");
+            jpql.append(" AND training.trainingDate <= :toDate ");
         }
 
         if (trainerName != null && !trainerName.isBlank()) {
             jpql.append("""
-                 AND LOWER(CONCAT(tr.trainer.firstName, ' ', tr.trainer.lastName))
-                LIKE LOWER(:trainerName)
-                """);
+                    AND LOWER(CONCAT(training.trainer.firstName, ' ', training.trainer.lastName))
+                    LIKE LOWER(:trainerName)
+                    """);
         }
 
         if (trainingType != null && !trainingType.isBlank()) {
             jpql.append("""
-                 AND LOWER(tr.trainingType.trainingTypeName) = LOWER(:trainingType)
-                """);
+                    AND LOWER(training.trainingType.trainingTypeName) = LOWER(:trainingType)
+                    """);
         }
 
         var query = entityManager.createQuery(jpql.toString(), Training.class);
@@ -84,11 +87,11 @@ public class TrainingDao {
         }
 
         if (trainerName != null && !trainerName.isBlank()) {
-            query.setParameter("trainerName", "%" + trainerName + "%");
+            query.setParameter("trainerName", "%" + trainerName.trim() + "%");
         }
 
         if (trainingType != null && !trainingType.isBlank()) {
-            query.setParameter("trainingType", trainingType);
+            query.setParameter("trainingType", trainingType.trim());
         }
 
         return query.getResultList();
@@ -101,24 +104,24 @@ public class TrainingDao {
             String traineeName
     ) {
         StringBuilder jpql = new StringBuilder("""
-            SELECT tr
-            FROM Training tr
-            WHERE tr.trainer.username = :trainerUsername
-            """);
+                SELECT training
+                FROM Training training
+                WHERE training.trainer.username = :trainerUsername
+                """);
 
         if (fromDate != null) {
-            jpql.append(" AND tr.trainingDate >= :fromDate ");
+            jpql.append(" AND training.trainingDate >= :fromDate ");
         }
 
         if (toDate != null) {
-            jpql.append(" AND tr.trainingDate <= :toDate ");
+            jpql.append(" AND training.trainingDate <= :toDate ");
         }
 
         if (traineeName != null && !traineeName.isBlank()) {
             jpql.append("""
-                 AND LOWER(CONCAT(tr.trainee.firstName, ' ', tr.trainee.lastName))
-                LIKE LOWER(:traineeName)
-                """);
+                    AND LOWER(CONCAT(training.trainee.firstName, ' ', training.trainee.lastName))
+                    LIKE LOWER(:traineeName)
+                    """);
         }
 
         var query = entityManager.createQuery(jpql.toString(), Training.class);
@@ -133,7 +136,7 @@ public class TrainingDao {
         }
 
         if (traineeName != null && !traineeName.isBlank()) {
-            query.setParameter("traineeName", "%" + traineeName + "%");
+            query.setParameter("traineeName", "%" + traineeName.trim() + "%");
         }
 
         return query.getResultList();

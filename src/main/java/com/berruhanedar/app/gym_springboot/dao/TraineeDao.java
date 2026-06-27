@@ -24,8 +24,7 @@ public class TraineeDao {
     }
 
     public List<Trainee> findAll() {
-        return entityManager.createQuery(
-                        "SELECT t FROM Trainee t", Trainee.class)
+        return entityManager.createQuery("SELECT t FROM Trainee t", Trainee.class)
                 .getResultList();
     }
 
@@ -34,7 +33,11 @@ public class TraineeDao {
     }
 
     public void delete(Trainee trainee) {
-        entityManager.remove(trainee);
+        Trainee managedTrainee = entityManager.contains(trainee)
+                ? trainee
+                : entityManager.merge(trainee);
+
+        entityManager.remove(managedTrainee);
     }
 
     public Optional<Trainee> findByUsername(String username) {
@@ -48,8 +51,8 @@ public class TraineeDao {
 
     public List<String> findAllUsernames() {
         return entityManager.createQuery(
-                        "SELECT t.username FROM Trainee t", String.class)
+                        "SELECT t.username FROM Trainee t",
+                        String.class)
                 .getResultList();
     }
-
 }

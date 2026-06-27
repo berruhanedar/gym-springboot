@@ -19,6 +19,8 @@ import java.util.Properties;
 @EnableTransactionManagement
 public class HibernateConfig {
 
+    private static final String ENTITY_PACKAGE = "com.berruhanedar.app.gym_springboot.entity";
+
     @Value("${db.driver}")
     private String driver;
 
@@ -56,31 +58,18 @@ public class HibernateConfig {
     }
 
     @Bean
-    public LocalSessionFactoryBean sessionFactory() {
-
+    public LocalSessionFactoryBean sessionFactory(DataSource dataSource) {
         LocalSessionFactoryBean sessionFactory = new LocalSessionFactoryBean();
 
-        sessionFactory.setDataSource(dataSource());
-        sessionFactory.setPackagesToScan("com.berruhanedar.app.gym_springboot.entity");
+        sessionFactory.setDataSource(dataSource);
+        sessionFactory.setPackagesToScan(ENTITY_PACKAGE);
         sessionFactory.setHibernateProperties(hibernateProperties());
 
         return sessionFactory;
     }
 
-    private Properties hibernateProperties() {
-
-        Properties properties = new Properties();
-
-        properties.put("hibernate.dialect", dialect);
-        properties.put("hibernate.hbm2ddl.auto", ddlAuto);
-        properties.put("hibernate.show_sql", showSql);
-        properties.put("hibernate.format_sql", formatSql);
-
-        return properties;
-    }
-
     @Bean
-    public HibernateTransactionManager transactionManager(SessionFactory sessionFactory) {
+    public PlatformTransactionManager transactionManager(SessionFactory sessionFactory) {
         return new HibernateTransactionManager(sessionFactory);
     }
 
@@ -92,5 +81,16 @@ public class HibernateConfig {
     @Bean
     public LocalValidatorFactoryBean validator() {
         return new LocalValidatorFactoryBean();
+    }
+
+    private Properties hibernateProperties() {
+        Properties properties = new Properties();
+
+        properties.put("hibernate.dialect", dialect);
+        properties.put("hibernate.hbm2ddl.auto", ddlAuto);
+        properties.put("hibernate.show_sql", showSql);
+        properties.put("hibernate.format_sql", formatSql);
+
+        return properties;
     }
 }

@@ -9,7 +9,8 @@ import java.util.Set;
 
 @Entity
 @Table(name = "trainees")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true, exclude = {"trainers", "trainings"})
 @ToString(callSuper = true, exclude = {"trainers", "trainings"})

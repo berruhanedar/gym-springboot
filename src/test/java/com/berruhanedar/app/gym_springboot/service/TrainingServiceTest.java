@@ -196,7 +196,7 @@ class TrainingServiceTest {
         NewTrainerRequestDTO dto = new NewTrainerRequestDTO();
         dto.setFirstName(firstName);
         dto.setLastName(lastName);
-        dto.setSpecialization(specialization);
+        dto.setSpecializationName(specialization.getTrainingTypeName());
         return gymFacade.createTrainer(dto);
     }
 

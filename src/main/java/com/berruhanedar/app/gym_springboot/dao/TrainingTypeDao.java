@@ -19,18 +19,21 @@ public class TrainingTypeDao {
     }
 
     public Optional<TrainingType> findByName(String name) {
-        return entityManager.createQuery(
-                        "SELECT t FROM TrainingType t WHERE LOWER(t.trainingTypeName) = LOWER(:name)",
-                        TrainingType.class)
-                .setParameter("name", name)
+        return entityManager.createQuery("""
+                        SELECT trainingType
+                        FROM TrainingType trainingType
+                        WHERE LOWER(trainingType.trainingTypeName) = LOWER(:name)
+                        """, TrainingType.class)
+                .setParameter("name", name.trim())
                 .getResultStream()
                 .findFirst();
     }
 
     public List<TrainingType> findAll() {
-        return entityManager.createQuery(
-                        "SELECT t FROM TrainingType t",
-                        TrainingType.class)
+        return entityManager.createQuery("""
+                        SELECT trainingType
+                        FROM TrainingType trainingType
+                        """, TrainingType.class)
                 .getResultList();
     }
 }

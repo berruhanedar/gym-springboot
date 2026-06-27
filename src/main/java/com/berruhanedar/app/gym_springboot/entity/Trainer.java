@@ -6,7 +6,8 @@ import lombok.*;
 import java.util.HashSet;
 import java.util.Set;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true, exclude = {"trainees", "trainings"})
 @ToString(callSuper = true, exclude = {"trainees", "trainings"})

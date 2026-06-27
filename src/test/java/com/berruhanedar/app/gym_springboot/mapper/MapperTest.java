@@ -1,10 +1,6 @@
 package com.berruhanedar.app.gym_springboot.mapper;
 
-import com.berruhanedar.app.gym_springboot.dto.NewTraineeRequestDTO;
-import com.berruhanedar.app.gym_springboot.dto.NewTrainerRequestDTO;
-import com.berruhanedar.app.gym_springboot.dto.NewTrainingRequestDTO;
-import com.berruhanedar.app.gym_springboot.dto.UpdateTraineeRequestDTO;
-import com.berruhanedar.app.gym_springboot.dto.UpdateTrainerRequestDTO;
+import com.berruhanedar.app.gym_springboot.dto.*;
 import com.berruhanedar.app.gym_springboot.entity.Trainee;
 import com.berruhanedar.app.gym_springboot.entity.Trainer;
 import com.berruhanedar.app.gym_springboot.entity.Training;
@@ -57,33 +53,33 @@ class MapperTest {
     @Test
     void shouldMapTrainerCreateUpdateAndResponseDtos() {
         TrainingType yoga = trainingType(1L, "Yoga");
-        TrainingType pilates = trainingType(2L, "Pilates");
 
         NewTrainerRequestDTO create = new NewTrainerRequestDTO();
         create.setFirstName("Bob");
         create.setLastName("Miller");
-        create.setSpecialization(yoga);
+        create.setSpecializationName("Yoga");
 
         Trainer trainer = trainerMapper.toEntity(create);
         trainer.setId(1L);
         trainer.setUsername("Bob.Miller");
         trainer.setPassword("secret");
         trainer.setIsActive(true);
+        trainer.setSpecialization(yoga);
 
-        assertThat(trainerMapper.toDTO(trainer).getSpecialization().getTrainingTypeName()).isEqualTo("Yoga");
+        assertThat(trainerMapper.toDTO(trainer).getSpecializationName()).isEqualTo("Yoga");
 
         UpdateTrainerRequestDTO update = new UpdateTrainerRequestDTO();
         update.setId(1L);
         update.setFirstName("Bobby");
         update.setLastName("Miles");
-        update.setSpecialization(pilates);
+        update.setSpecializationName("Pilates");
         update.setIsActive(false);
 
         trainerMapper.updateFromDTO(update, trainer);
 
         assertThat(trainer.getFirstName()).isEqualTo("Bobby");
         assertThat(trainer.getLastName()).isEqualTo("Miles");
-        assertThat(trainer.getSpecialization().getTrainingTypeName()).isEqualTo("Pilates");
+        assertThat(trainer.getSpecialization().getTrainingTypeName()).isEqualTo("Yoga");
         assertThat(trainer.getIsActive()).isFalse();
     }
 
@@ -91,8 +87,10 @@ class MapperTest {
     void shouldMapTrainingCreateAndResponseDtos() {
         Trainee trainee = new Trainee();
         trainee.setId(10L);
+
         Trainer trainer = new Trainer();
         trainer.setId(20L);
+
         TrainingType yoga = trainingType(30L, "Yoga");
 
         NewTrainingRequestDTO create = new NewTrainingRequestDTO();
@@ -114,7 +112,7 @@ class MapperTest {
         training.setTrainer(trainer);
         training.setTrainingType(yoga);
 
-        var response = trainingMapper.toDTO(training);
+        TrainingResponseDTO response = trainingMapper.toDTO(training);
 
         assertThat(response.getTraineeId()).isEqualTo(10L);
         assertThat(response.getTrainerId()).isEqualTo(20L);

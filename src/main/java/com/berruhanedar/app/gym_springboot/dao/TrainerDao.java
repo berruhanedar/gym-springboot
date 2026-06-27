@@ -29,13 +29,16 @@ public class TrainerDao {
     }
 
     public List<Trainer> findAll() {
-        return entityManager.createQuery(
-                        "SELECT t FROM Trainer t", Trainer.class)
+        return entityManager.createQuery("SELECT t FROM Trainer t", Trainer.class)
                 .getResultList();
     }
 
     public void delete(Trainer trainer) {
-        entityManager.remove(trainer);
+        Trainer managedTrainer = entityManager.contains(trainer)
+                ? trainer
+                : entityManager.merge(trainer);
+
+        entityManager.remove(managedTrainer);
     }
 
     public Optional<Trainer> findByUsername(String username) {
@@ -49,7 +52,8 @@ public class TrainerDao {
 
     public List<String> findAllUsernames() {
         return entityManager.createQuery(
-                        "SELECT t.username FROM Trainer t", String.class)
+                        "SELECT t.username FROM Trainer t",
+                        String.class)
                 .getResultList();
     }
 
@@ -65,25 +69,29 @@ public class TrainerDao {
 
     public List<Trainer> findTrainersNotAssignedToTrainee(String traineeUsername) {
         return entityManager.createQuery("""
-            SELECT tr
-            FROM Trainer tr
-            WHERE tr.id NOT IN (
-                SELECT assignedTrainer.id
-                FROM Trainee te
-                JOIN te.trainers assignedTrainer
-                WHERE te.username = :traineeUsername
-            )
-            """, Trainer.class)
+                        SELECT trainer
+                        FROM Trainer trainer
+                        WHERE trainer.id NOT IN (
+                            SELECT assignedTrainer.id
+                            FROM Trainee trainee
+                            JOIN trainee.trainers assignedTrainer
+                            WHERE trainee.username = :traineeUsername
+                        )
+                        """, Trainer.class)
                 .setParameter("traineeUsername", traineeUsername)
                 .getResultList();
     }
 
     public List<Trainer> findAllByIds(Set<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+
         return entityManager.createQuery("""
-            SELECT t
-            FROM Trainer t
-            WHERE t.id IN :ids
-            """, Trainer.class)
+                        SELECT trainer
+                        FROM Trainer trainer
+                        WHERE trainer.id IN :ids
+                        """, Trainer.class)
                 .setParameter("ids", ids)
                 .getResultList();
     }

@@ -5,16 +5,19 @@ import lombok.*;
 
 import java.time.LocalDate;
 
+@Entity
+@Table(name = "trainings")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "trainings")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = {"trainee", "trainer", "trainingType"})
 public class Training {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)

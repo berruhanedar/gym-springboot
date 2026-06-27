@@ -17,6 +17,7 @@ public class NewTrainerRequestDTO {
     @Size(min = 2, max = 50)
     private String lastName;
 
-    @NotNull
-    private TrainingType specialization;
+    @NotBlank
+    @Size(min = 2, max = 50)
+    private String specializationName;
 }
