@@ -1,6 +1,5 @@
 package com.berruhanedar.app.gym_springboot.dto;
 
-import com.berruhanedar.app.gym_springboot.entity.TrainingType;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
