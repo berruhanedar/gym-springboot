@@ -33,11 +33,7 @@ public class TraineeDao {
     }
 
     public void delete(Trainee trainee) {
-        Trainee managedTrainee = entityManager.contains(trainee)
-                ? trainee
-                : entityManager.merge(trainee);
-
-        entityManager.remove(managedTrainee);
+        entityManager.remove(trainee);
     }
 
     public Optional<Trainee> findByUsername(String username) {

@@ -34,11 +34,7 @@ public class TrainerDao {
     }
 
     public void delete(Trainer trainer) {
-        Trainer managedTrainer = entityManager.contains(trainer)
-                ? trainer
-                : entityManager.merge(trainer);
-
-        entityManager.remove(managedTrainer);
+        entityManager.remove(trainer);
     }
 
     public Optional<Trainer> findByUsername(String username) {
