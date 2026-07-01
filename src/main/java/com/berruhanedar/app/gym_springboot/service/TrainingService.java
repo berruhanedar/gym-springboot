@@ -103,6 +103,19 @@ public class TrainingService {
     }
 
     @Transactional(readOnly = true)
+    public List<TrainingTypeResponseDTO> getTrainingTypes() {
+        return trainingTypeDao.findAll()
+                .stream()
+                .map(trainingType -> {
+                    TrainingTypeResponseDTO dto = new TrainingTypeResponseDTO();
+                    dto.setId(trainingType.getId());
+                    dto.setTrainingTypeName(trainingType.getTrainingTypeName());
+                    return dto;
+                })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public TrainingResponseDTO getTraining(CredentialsDTO traineeCredentials, Long id) {
         authenticationService.authenticate(traineeCredentials);
         log.debug("Selecting training. id={}", id);

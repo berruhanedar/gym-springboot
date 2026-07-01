@@ -37,4 +37,10 @@ public class TrainingController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/types")
+    public ResponseEntity<List<TrainingTypeResponseDTO>> getTrainingTypes() {
+        List<TrainingTypeResponseDTO> response = trainingService.getTrainingTypes();
+        return ResponseEntity.ok(response);
+    }
+
 }
