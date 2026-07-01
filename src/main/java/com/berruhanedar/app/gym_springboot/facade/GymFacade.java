@@ -78,8 +78,8 @@ public class GymFacade {
         return trainerService.getTrainerByUsername(credentials, username);
     }
 
-    public TrainerResponseDTO changeTrainerActivationStatus(CredentialsDTO credentials) {
-        return trainerService.changeActivationStatus(credentials);
+    public void changeTrainerActivationStatus(CredentialsDTO credentials, UpdateActivationStatusDTO dto) {
+        trainerService.changeActivationStatus(credentials, dto);
     }
 
     public List<TrainerResponseDTO> getTrainersNotAssignedToTrainee(CredentialsDTO credentials, String traineeUsername) {

@@ -87,23 +87,23 @@ public class TrainerService {
         return trainerMapper.toDTO(updated);
     }
 
+    @Transactional
+    public void changeActivationStatus(CredentialsDTO credentials, @Valid UpdateActivationStatusDTO dto) {
+        authenticationService.authenticate(credentials);
+        log.info("Updating trainer activation status. username={}, isActive={}", dto.getUsername(), dto.getIsActive());
+        Trainer trainer = findTrainerByUsername(dto.getUsername());
+        validateTrainerOwnsProfile(credentials, trainer);
+        trainer.setIsActive(dto.getIsActive());
+        trainerDao.update(trainer);
+        log.info("Trainer activation status updated successfully. username={}, isActive={}", dto.getUsername(), dto.getIsActive());
+    }
+
     @Transactional(readOnly = true)
     public TrainerResponseDTO getTrainer(CredentialsDTO credentials, Long id) {
         authenticationService.authenticate(credentials);
         log.debug("Selecting trainer profile. id={}", id);
         Trainer trainer = findTrainerById(id);
         return trainerMapper.toDTO(trainer);
-    }
-
-    @Transactional
-    public TrainerResponseDTO changeActivationStatus(CredentialsDTO credentials) {
-        authenticationService.authenticate(credentials);
-        log.info("Changing trainer activation status. username={}", credentials.getUsername());
-        Trainer trainer = findTrainerByUsername(credentials.getUsername());
-        trainer.setIsActive(!trainer.getIsActive());
-        Trainer updated = trainerDao.update(trainer);
-        log.info("Trainer activation status changed. username={}, isActive={}", credentials.getUsername(), updated.getIsActive());
-        return trainerMapper.toDTO(updated);
     }
 
     @Transactional(readOnly = true)

@@ -35,4 +35,10 @@ public class TrainerController {
         TrainerResponseDTO response = trainerService.updateTrainer(credentials, request);
         return ResponseEntity.ok(response);
     }
+
+    @PatchMapping("/trainers/activation")
+    public ResponseEntity<Void> changeTrainerActivationStatus(@Valid CredentialsDTO credentials, @Valid @RequestBody UpdateActivationStatusDTO request) {
+        trainerService.changeActivationStatus(credentials, request);
+        return ResponseEntity.ok().build();
+    }
 }
