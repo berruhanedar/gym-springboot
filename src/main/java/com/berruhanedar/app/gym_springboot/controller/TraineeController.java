@@ -36,4 +36,10 @@ public class TraineeController {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping("/trainees/{username}")
+    public ResponseEntity<Void> deleteTraineeProfile(@Valid CredentialsDTO credentials, @PathVariable @NotBlank String username) {
+        traineeService.deleteTraineeByUsername(credentials, username);
+        return ResponseEntity.ok().build();
+    }
+
 }
