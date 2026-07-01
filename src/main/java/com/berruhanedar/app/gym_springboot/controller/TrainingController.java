@@ -2,6 +2,7 @@ package com.berruhanedar.app.gym_springboot.controller;
 
 import com.berruhanedar.app.gym_springboot.dto.CredentialsDTO;
 import com.berruhanedar.app.gym_springboot.dto.TraineeTrainingsFilterDTO;
+import com.berruhanedar.app.gym_springboot.dto.TrainerTrainingsFilterDTO;
 import com.berruhanedar.app.gym_springboot.dto.TrainingResponseDTO;
 import com.berruhanedar.app.gym_springboot.service.TrainingService;
 import jakarta.validation.Valid;
@@ -26,4 +27,11 @@ public class TrainingController {
         List<TrainingResponseDTO> response = trainingService.getTraineeTrainings(credentials, username, filter);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/trainer/{username}")
+    public ResponseEntity<List<TrainingResponseDTO>> getTrainerTrainings(@Valid CredentialsDTO credentials, @PathVariable @NotBlank String username, @Valid TrainerTrainingsFilterDTO filter) {
+        List<TrainingResponseDTO> response = trainingService.getTrainerTrainings(credentials, username, filter);
+        return ResponseEntity.ok(response);
+    }
+
 }

@@ -98,7 +98,7 @@ public class GymFacade {
         return trainingService.getTraineeTrainings(traineeCredentials, traineeUsername, filter);
     }
 
-    public List<TrainingResponseDTO> getTrainerTrainings(CredentialsDTO trainerCredentials, String trainerUsername, LocalDate fromDate, LocalDate toDate, String traineeName) {
-        return trainingService.getTrainerTrainings(trainerCredentials, trainerUsername, fromDate, toDate, traineeName);
+    public List<TrainingResponseDTO> getTrainerTrainings(CredentialsDTO trainerCredentials, String trainerUsername, TrainerTrainingsFilterDTO filter) {
+        return trainingService.getTrainerTrainings(trainerCredentials, trainerUsername, filter);
     }
 }
