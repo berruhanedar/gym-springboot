@@ -119,18 +119,6 @@ public class TraineeService {
     }
 
     @Transactional
-    public void changePassword(CredentialsDTO credentials, String newPassword) {
-        authenticationService.authenticate(credentials);
-        validatePassword(newPassword);
-
-        Trainee trainee = findTraineeByUsername(credentials.getUsername());
-        trainee.setPassword(newPassword);
-        traineeDao.update(trainee);
-
-        log.info("Trainee password changed successfully. username={}", credentials.getUsername());
-    }
-
-    @Transactional
     public TraineeResponseDTO changeActivationStatus(CredentialsDTO credentials) {
         authenticationService.authenticate(credentials);
         log.info("Changing trainee activation status. username={}", credentials.getUsername());
@@ -198,9 +186,4 @@ public class TraineeService {
         }
     }
 
-    private void validatePassword(String password) {
-        if (password == null || password.isBlank()) {
-            throw new IllegalArgumentException("New password must not be blank.");
-        }
-    }
 }

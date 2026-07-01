@@ -107,18 +107,6 @@ public class TrainerService {
     }
 
     @Transactional
-    public void changePassword(CredentialsDTO credentials, String newPassword) {
-        authenticationService.authenticate(credentials);
-        validatePassword(newPassword);
-
-        Trainer trainer = findTrainerByUsername(credentials.getUsername());
-        trainer.setPassword(newPassword);
-        trainerDao.update(trainer);
-
-        log.info("Trainer password changed successfully. username={}", credentials.getUsername());
-    }
-
-    @Transactional
     public TrainerResponseDTO changeActivationStatus(CredentialsDTO credentials) {
         authenticationService.authenticate(credentials);
         log.info("Changing trainer activation status. username={}", credentials.getUsername());
@@ -164,9 +152,4 @@ public class TrainerService {
                         "Training type not found: " + specializationName));
     }
 
-    private void validatePassword(String password) {
-        if (password == null || password.isBlank()) {
-            throw new IllegalArgumentException("New password must not be blank.");
-        }
-    }
 }

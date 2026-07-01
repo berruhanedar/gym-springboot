@@ -13,17 +13,32 @@ public class GymFacade {
     private final TraineeService traineeService;
     private final TrainerService trainerService;
     private final TrainingService trainingService;
+    private final AuthenticationService authenticationService;
 
     public GymFacade(TraineeService traineeService,
                      TrainerService trainerService,
-                     TrainingService trainingService) {
+                     TrainingService trainingService,
+                     AuthenticationService authenticationService) {
         this.traineeService = traineeService;
         this.trainerService = trainerService;
         this.trainingService = trainingService;
+        this.authenticationService = authenticationService;
     }
 
-    public TraineeResponseDTO createTrainee(NewTraineeRequestDTO dto) {
+    public RegistrationResponseDTO createTrainee(NewTraineeRequestDTO dto) {
         return traineeService.createTrainee(dto);
+    }
+
+    public RegistrationResponseDTO createTrainer(NewTrainerRequestDTO dto) {
+        return trainerService.createTrainer(dto);
+    }
+
+    public void authenticate(CredentialsDTO credentials) {
+        authenticationService.authenticate(credentials);
+    }
+
+    public void changePassword(ChangePasswordRequestDTO request) {
+        authenticationService.changePassword(request);
     }
 
     public TraineeResponseDTO updateTrainee(CredentialsDTO credentials, UpdateTraineeRequestDTO dto) {
@@ -42,10 +57,6 @@ public class GymFacade {
         return traineeService.getTraineeByUsername(credentials, username);
     }
 
-    public void changeTraineePassword(CredentialsDTO credentials, String newPassword) {
-        traineeService.changePassword(credentials, newPassword);
-    }
-
     public TraineeResponseDTO changeTraineeActivationStatus(CredentialsDTO credentials) {
         return traineeService.changeActivationStatus(credentials);
     }
@@ -59,10 +70,6 @@ public class GymFacade {
         return traineeService.updateTraineeTrainers(credentials, dto);
     }
 
-    public TrainerResponseDTO createTrainer(NewTrainerRequestDTO dto) {
-        return trainerService.createTrainer(dto);
-    }
-
     public TrainerResponseDTO updateTrainer(CredentialsDTO credentials, UpdateTrainerRequestDTO dto) {
         return trainerService.updateTrainer(credentials, dto);
     }
@@ -73,10 +80,6 @@ public class GymFacade {
 
     public TrainerResponseDTO getTrainerByUsername(CredentialsDTO credentials, String username) {
         return trainerService.getTrainerByUsername(credentials, username);
-    }
-
-    public void changeTrainerPassword(CredentialsDTO credentials, String newPassword) {
-        trainerService.changePassword(credentials, newPassword);
     }
 
     public TrainerResponseDTO changeTrainerActivationStatus(CredentialsDTO credentials) {
