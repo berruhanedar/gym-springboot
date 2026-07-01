@@ -1,15 +1,15 @@
 package com.berruhanedar.app.gym_springboot.controller;
 
+import com.berruhanedar.app.gym_springboot.dto.CredentialsDTO;
 import com.berruhanedar.app.gym_springboot.dto.NewTraineeRequestDTO;
 import com.berruhanedar.app.gym_springboot.dto.RegistrationResponseDTO;
+import com.berruhanedar.app.gym_springboot.dto.TraineeResponseDTO;
 import com.berruhanedar.app.gym_springboot.service.TraineeService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api")
@@ -25,6 +25,12 @@ public class TraineeController {
     public ResponseEntity<RegistrationResponseDTO> registerTrainee(@Valid @RequestBody NewTraineeRequestDTO newTraineeRequestDTO) {
         RegistrationResponseDTO response = traineeService.createTrainee(newTraineeRequestDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/trainees/{username}")
+    public ResponseEntity<TraineeResponseDTO> getTraineeProfile(@Valid CredentialsDTO credentials, @PathVariable @NotBlank String username) {
+        TraineeResponseDTO response = traineeService.getTraineeByUsername(credentials, username);
+        return ResponseEntity.ok(response);
     }
 
 
