@@ -61,47 +61,8 @@ public class TrainingService {
         this.authenticationService = authenticationService;
     }
 
-    @Transactional
-    public TrainingResponseDTO createTraining(
-            CredentialsDTO trainerCredentials,
-            @Valid NewTrainingRequestDTO dto
-    ) {
-        authenticationService.authenticate(trainerCredentials);
-
-        log.info("Creating training. traineeId={}, trainerId={}",
-                dto.getTraineeId(), dto.getTrainerId());
-
-        Trainee trainee = findTraineeById(dto.getTraineeId());
-        Trainer trainer = findTrainerById(dto.getTrainerId());
-        TrainingType trainingType = findTrainingTypeByName(dto.getTrainingTypeName());
-
-        Training training = trainingMapper.toEntity(dto);
-        training.setTrainee(trainee);
-        training.setTrainer(trainer);
-        training.setTrainingType(trainingType);
-
-        Training saved = trainingDao.save(training);
-
-        log.info("Training created successfully. id={}", saved.getId());
-        return trainingMapper.toDTO(saved);
-    }
-
     @Transactional(readOnly = true)
-    public TrainingResponseDTO getTraining(CredentialsDTO traineeCredentials, Long id) {
-        authenticationService.authenticate(traineeCredentials);
-
-        log.debug("Selecting training. id={}", id);
-
-        Training training = findTrainingById(id);
-
-        return trainingMapper.toDTO(training);
-    }
-
-    @Transactional(readOnly = true)
-    public List<TrainingResponseDTO> getTraineeTrainings(
-            CredentialsDTO credentials,
-            String username,
-            TraineeTrainingsFilterDTO filter) {
+    public List<TrainingResponseDTO> getTraineeTrainings(CredentialsDTO credentials, String username, TraineeTrainingsFilterDTO filter) {
         authenticationService.authenticate(credentials);
         return trainingDao.findByTraineeUsernameAndCriteria(
                         username,
@@ -127,24 +88,37 @@ public class TrainingService {
                 .toList();
     }
 
+    @Transactional
+    public void createTraining(CredentialsDTO trainerCredentials, @Valid NewTrainingRequestDTO dto) {
+        authenticationService.authenticate(trainerCredentials);
+        log.info("Creating training. traineeUsername={}, trainerUsername={}", dto.getTraineeUsername(), dto.getTrainerUsername());
+        Trainee trainee = findTraineeByUsername(dto.getTraineeUsername());
+        Trainer trainer = findTrainerByUsername(dto.getTrainerUsername());
+        Training training = trainingMapper.toEntity(dto);
+        training.setTrainee(trainee);
+        training.setTrainer(trainer);
+        training.setTrainingType(trainer.getSpecialization());
+        Training saved = trainingDao.save(training);
+        log.info("Training created successfully. id={}", saved.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public TrainingResponseDTO getTraining(CredentialsDTO traineeCredentials, Long id) {
+        authenticationService.authenticate(traineeCredentials);
+        log.debug("Selecting training. id={}", id);
+        Training training = findTrainingById(id);
+        return trainingMapper.toDTO(training);
+    }
+
     private Training findTrainingById(Long id) {
-        return trainingDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Training not found. id=" + id));
+        return trainingDao.findById(id).orElseThrow(() -> new EntityNotFoundException("Training not found. id=" + id));
     }
 
-    private Trainee findTraineeById(Long id) {
-        return traineeDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found. id=" + id));
+    private Trainee findTraineeByUsername(String username) {
+        return traineeDao.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + username));
     }
 
-    private Trainer findTrainerById(Long id) {
-        return trainerDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Trainer not found. id=" + id));
-    }
-
-    private TrainingType findTrainingTypeByName(String trainingTypeName) {
-        return trainingTypeDao.findByName(trainingTypeName)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Training type not found: " + trainingTypeName));
+    private Trainer findTrainerByUsername(String username) {
+        return trainerDao.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + username));
     }
 }

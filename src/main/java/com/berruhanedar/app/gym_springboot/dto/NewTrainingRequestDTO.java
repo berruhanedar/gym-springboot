@@ -8,19 +8,15 @@ import java.time.LocalDate;
 @Data
 public class NewTrainingRequestDTO {
 
-    @NotNull
-    private Long traineeId;
+    @NotBlank
+    private String traineeUsername;
 
-    @NotNull
-    private Long trainerId;
+    @NotBlank
+    private String trainerUsername;
 
     @NotBlank
     @Size(min = 2, max = 100)
     private String trainingName;
-
-    @NotBlank
-    @Size(min = 2, max = 50)
-    private String trainingTypeName;
 
     @NotNull
     @FutureOrPresent

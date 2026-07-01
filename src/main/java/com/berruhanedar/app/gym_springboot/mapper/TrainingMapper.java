@@ -8,9 +8,9 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface TrainingMapper {
 
-    @Mapping(target = "traineeId", source = "trainee.id")
-    @Mapping(target = "trainerId", source = "trainer.id")
-    @Mapping(target = "trainingTypeName", source = "trainingType.trainingTypeName")
+    @Mapping(source = "trainingType.trainingTypeName", target = "trainingTypeName")
+    @Mapping(source = "trainer.firstName", target = "trainerName")
+    @Mapping(source = "trainee.firstName", target = "traineeName")
     TrainingResponseDTO toDTO(Training training);
 
     @Mapping(target = "id", ignore = true)
