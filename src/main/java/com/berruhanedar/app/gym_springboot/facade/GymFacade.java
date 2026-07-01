@@ -15,10 +15,7 @@ public class GymFacade {
     private final TrainingService trainingService;
     private final AuthenticationService authenticationService;
 
-    public GymFacade(TraineeService traineeService,
-                     TrainerService trainerService,
-                     TrainingService trainingService,
-                     AuthenticationService authenticationService) {
+    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, AuthenticationService authenticationService) {
         this.traineeService = traineeService;
         this.trainerService = trainerService;
         this.trainingService = trainingService;
@@ -65,8 +62,7 @@ public class GymFacade {
         traineeService.deleteTraineeByUsername(credentials, username);
     }
 
-    public TraineeResponseDTO updateTraineeTrainers(CredentialsDTO credentials,
-                                                    UpdateTraineeTrainersRequestDTO dto) {
+    public List<TrainerSummaryDTO> updateTraineeTrainers(CredentialsDTO credentials, UpdateTraineeTrainersRequestDTO dto) {
         return traineeService.updateTraineeTrainers(credentials, dto);
     }
 
@@ -86,13 +82,11 @@ public class GymFacade {
         return trainerService.changeActivationStatus(credentials);
     }
 
-    public List<TrainerResponseDTO> getTrainersNotAssignedToTrainee(CredentialsDTO credentials,
-                                                                    String traineeUsername) {
+    public List<TrainerResponseDTO> getTrainersNotAssignedToTrainee(CredentialsDTO credentials, String traineeUsername) {
         return trainerService.getTrainersNotAssignedToTrainee(credentials, traineeUsername);
     }
 
-    public TrainingResponseDTO createTraining(CredentialsDTO trainerCredentials,
-                                              NewTrainingRequestDTO dto) {
+    public TrainingResponseDTO createTraining(CredentialsDTO trainerCredentials, NewTrainingRequestDTO dto) {
         return trainingService.createTraining(trainerCredentials, dto);
     }
 
@@ -100,35 +94,11 @@ public class GymFacade {
         return trainingService.getTraining(credentials, id);
     }
 
-    public List<TrainingResponseDTO> getTraineeTrainings(
-            CredentialsDTO traineeCredentials,
-            String traineeUsername,
-            LocalDate fromDate,
-            LocalDate toDate,
-            String trainerName,
-            String trainingType) {
-
-        return trainingService.getTraineeTrainings(
-                traineeCredentials,
-                traineeUsername,
-                fromDate,
-                toDate,
-                trainerName,
-                trainingType);
+    public List<TrainingResponseDTO> getTraineeTrainings(CredentialsDTO traineeCredentials, String traineeUsername, LocalDate fromDate, LocalDate toDate, String trainerName, String trainingType) {
+        return trainingService.getTraineeTrainings(traineeCredentials, traineeUsername, fromDate, toDate, trainerName, trainingType);
     }
 
-    public List<TrainingResponseDTO> getTrainerTrainings(
-            CredentialsDTO trainerCredentials,
-            String trainerUsername,
-            LocalDate fromDate,
-            LocalDate toDate,
-            String traineeName) {
-
-        return trainingService.getTrainerTrainings(
-                trainerCredentials,
-                trainerUsername,
-                fromDate,
-                toDate,
-                traineeName);
+    public List<TrainingResponseDTO> getTrainerTrainings(CredentialsDTO trainerCredentials, String trainerUsername, LocalDate fromDate, LocalDate toDate, String traineeName) {
+        return trainingService.getTrainerTrainings(trainerCredentials, trainerUsername, fromDate, toDate, traineeName);
     }
 }

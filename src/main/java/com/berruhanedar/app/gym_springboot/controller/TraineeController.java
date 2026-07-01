@@ -53,4 +53,10 @@ public class TraineeController {
         return ResponseEntity.ok(response);
     }
 
+    @PutMapping("/trainees/trainers")
+    public ResponseEntity<List<TrainerSummaryDTO>> updateTraineeTrainers(@Valid CredentialsDTO credentials, @Valid @RequestBody UpdateTraineeTrainersRequestDTO request) {
+        List<TrainerSummaryDTO> response = traineeService.updateTraineeTrainers(credentials, request);
+        return ResponseEntity.ok(response);
+    }
+
 }
