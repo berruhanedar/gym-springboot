@@ -2,7 +2,6 @@ package com.berruhanedar.app.gym_springboot.service;
 
 import com.berruhanedar.app.gym_springboot.config.AppConfig;
 import com.berruhanedar.app.gym_springboot.dao.TraineeDao;
-import com.berruhanedar.app.gym_springboot.dao.TrainerDao;
 import com.berruhanedar.app.gym_springboot.dto.*;
 import com.berruhanedar.app.gym_springboot.entity.Trainee;
 import com.berruhanedar.app.gym_springboot.entity.TrainingType;
