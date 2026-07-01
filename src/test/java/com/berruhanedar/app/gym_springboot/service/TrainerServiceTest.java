@@ -53,9 +53,11 @@ class TrainerServiceTest {
         assertThat(response.getUsername()).isEqualTo("Daniel.Anderson");
         assertThat(response.getPassword()).hasSize(10);
 
-        Trainer savedEntity = findTrainerEntity(response.getUsername());
-        assertThat(savedEntity.getIsActive()).isTrue();
-        assertThat(savedEntity.getSpecialization().getTrainingTypeName()).isEqualTo("Boxing");
+        CredentialsDTO credentials = credentials(response.getUsername(), response.getPassword());
+        TrainerResponseDTO profile = gymFacade.getTrainerByUsername(credentials, response.getUsername());
+
+        assertThat(profile.getIsActive()).isTrue();
+        assertThat(profile.getSpecializationName()).isEqualTo("Boxing");
     }
 
     @Test

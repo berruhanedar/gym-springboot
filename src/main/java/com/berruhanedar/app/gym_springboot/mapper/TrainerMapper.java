@@ -12,6 +12,7 @@ public interface TrainerMapper {
 
     RegistrationResponseDTO toRegistrationResponseDTO(Trainer trainer);
 
+    @Mapping(source = "specialization.trainingTypeName", target = "specializationName")
     @Mapping(source = "trainees", target = "trainees")
     TrainerResponseDTO toDTO(Trainer trainer);
 
