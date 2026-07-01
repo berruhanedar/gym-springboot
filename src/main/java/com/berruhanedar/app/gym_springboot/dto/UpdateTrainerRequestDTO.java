@@ -5,8 +5,9 @@ import lombok.Data;
 
 @Data
 public class UpdateTrainerRequestDTO {
-    @NotNull
-    private Long id;
+
+    @NotBlank
+    private String username;
 
     @NotBlank
     @Size(min = 2, max = 50)
@@ -15,10 +16,6 @@ public class UpdateTrainerRequestDTO {
     @NotBlank
     @Size(min = 2, max = 50)
     private String lastName;
-
-    @NotBlank
-    @Size(min = 2, max = 50)
-    private String specializationName;
 
     @NotNull
     private Boolean isActive;

@@ -5,6 +5,7 @@ import com.berruhanedar.app.gym_springboot.dao.TrainingTypeDao;
 import com.berruhanedar.app.gym_springboot.dto.*;
 import com.berruhanedar.app.gym_springboot.entity.Trainer;
 import com.berruhanedar.app.gym_springboot.entity.TrainingType;
+import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TrainerMapper;
 import com.berruhanedar.app.gym_springboot.util.CredentialGenerator;
@@ -54,35 +55,35 @@ public class TrainerService {
     @Transactional
     public RegistrationResponseDTO createTrainer(@Valid NewTrainerRequestDTO dto) {
         log.info("Creating trainer profile for {} {}", dto.getFirstName(), dto.getLastName());
-
         TrainingType specialization = findTrainingTypeByName(dto.getSpecializationName());
-
         Trainer trainer = trainerMapper.toEntity(dto);
         trainer.setSpecialization(specialization);
         trainer.setUsername(credentialGenerator.generateUsername(dto.getFirstName(), dto.getLastName()));
         trainer.setPassword(credentialGenerator.generatePassword());
         trainer.setIsActive(true);
-
         Trainer saved = trainerDao.save(trainer);
-
         log.info("Trainer profile created successfully. id={}", saved.getId());
         return trainerMapper.toRegistrationResponseDTO(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public TrainerResponseDTO getTrainerByUsername(CredentialsDTO credentials, String username) {
+        authenticationService.authenticate(credentials);
+        log.debug("Selecting trainer profile. username={}", username);
+        Trainer trainer = findTrainerByUsername(username);
+        validateTrainerOwnsProfile(credentials, trainer);
+        return trainerMapper.toDTO(trainer);
     }
 
     @Transactional
     public TrainerResponseDTO updateTrainer(CredentialsDTO credentials, @Valid UpdateTrainerRequestDTO dto) {
         authenticationService.authenticate(credentials);
-        log.info("Updating trainer profile. id={}", dto.getId());
-
-        Trainer trainer = findTrainerById(dto.getId());
-        TrainingType specialization = findTrainingTypeByName(dto.getSpecializationName());
-
+        log.info("Updating trainer profile. username={}", dto.getUsername());
+        Trainer trainer = findTrainerByUsername(dto.getUsername());
+        validateTrainerOwnsProfile(credentials, trainer);
         trainerMapper.updateFromDTO(dto, trainer);
-        trainer.setSpecialization(specialization);
-
         Trainer updated = trainerDao.update(trainer);
-
-        log.info("Trainer profile updated successfully. id={}", updated.getId());
+        log.info("Trainer profile updated successfully. username={}", updated.getUsername());
         return trainerMapper.toDTO(updated);
     }
 
@@ -90,19 +91,7 @@ public class TrainerService {
     public TrainerResponseDTO getTrainer(CredentialsDTO credentials, Long id) {
         authenticationService.authenticate(credentials);
         log.debug("Selecting trainer profile. id={}", id);
-
         Trainer trainer = findTrainerById(id);
-
-        return trainerMapper.toDTO(trainer);
-    }
-
-    @Transactional(readOnly = true)
-    public TrainerResponseDTO getTrainerByUsername(CredentialsDTO credentials, String username) {
-        authenticationService.authenticate(credentials);
-        log.debug("Selecting trainer profile. username={}", username);
-
-        Trainer trainer = findTrainerByUsername(username);
-
         return trainerMapper.toDTO(trainer);
     }
 
@@ -110,26 +99,17 @@ public class TrainerService {
     public TrainerResponseDTO changeActivationStatus(CredentialsDTO credentials) {
         authenticationService.authenticate(credentials);
         log.info("Changing trainer activation status. username={}", credentials.getUsername());
-
         Trainer trainer = findTrainerByUsername(credentials.getUsername());
         trainer.setIsActive(!trainer.getIsActive());
-
         Trainer updated = trainerDao.update(trainer);
-
-        log.info("Trainer activation status changed. username={}, isActive={}",
-                credentials.getUsername(), updated.getIsActive());
-
+        log.info("Trainer activation status changed. username={}, isActive={}", credentials.getUsername(), updated.getIsActive());
         return trainerMapper.toDTO(updated);
     }
 
     @Transactional(readOnly = true)
-    public List<TrainerResponseDTO> getTrainersNotAssignedToTrainee(
-            CredentialsDTO credentials,
-            String traineeUsername
-    ) {
+    public List<TrainerResponseDTO> getTrainersNotAssignedToTrainee(CredentialsDTO credentials, String traineeUsername) {
         authenticationService.authenticate(credentials);
         log.info("Getting trainers not assigned to trainee. traineeUsername={}", traineeUsername);
-
         return trainerDao.findTrainersNotAssignedToTrainee(traineeUsername)
                 .stream()
                 .map(trainerMapper::toDTO)
@@ -150,6 +130,12 @@ public class TrainerService {
         return trainingTypeDao.findByName(specializationName)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Training type not found: " + specializationName));
+    }
+
+    private void validateTrainerOwnsProfile(CredentialsDTO credentials, Trainer trainer) {
+        if (!trainer.getUsername().equals(credentials.getUsername())) {
+            throw new AuthenticationException("Trainer is not authorized to access this profile.");
+        }
     }
 
 }
