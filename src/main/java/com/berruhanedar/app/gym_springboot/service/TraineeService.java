@@ -65,6 +65,15 @@ public class TraineeService {
         return traineeMapper.toRegistrationResponseDTO(saved);
     }
 
+    @Transactional(readOnly = true)
+    public TraineeResponseDTO getTraineeByUsername(CredentialsDTO credentials, String username) {
+        authenticationService.authenticate(credentials);
+        log.debug("Selecting trainee profile. username={}", username);
+        Trainee trainee = findTraineeByUsername(username);
+        validateTraineeOwnsProfile(credentials, trainee);
+        return traineeMapper.toDTO(trainee);
+    }
+
     @Transactional
     public TraineeResponseDTO updateTrainee(CredentialsDTO credentials, @Valid UpdateTraineeRequestDTO dto) {
         authenticationService.authenticate(credentials);
@@ -92,15 +101,6 @@ public class TraineeService {
         authenticationService.authenticate(credentials);
         log.debug("Selecting trainee profile. id={}", id);
         Trainee trainee = findTraineeById(id);
-        validateTraineeOwnsProfile(credentials, trainee);
-        return traineeMapper.toDTO(trainee);
-    }
-
-    @Transactional(readOnly = true)
-    public TraineeResponseDTO getTraineeByUsername(CredentialsDTO credentials, String username) {
-        authenticationService.authenticate(credentials);
-        log.debug("Selecting trainee profile. username={}", username);
-        Trainee trainee = findTraineeByUsername(username);
         validateTraineeOwnsProfile(credentials, trainee);
         return traineeMapper.toDTO(trainee);
     }

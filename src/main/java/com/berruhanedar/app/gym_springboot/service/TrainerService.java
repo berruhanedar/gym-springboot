@@ -109,9 +109,10 @@ public class TrainerService {
     @Transactional(readOnly = true)
     public List<TrainerResponseDTO> getTrainersNotAssignedToTrainee(CredentialsDTO credentials, String traineeUsername) {
         authenticationService.authenticate(credentials);
-        log.info("Getting trainers not assigned to trainee. traineeUsername={}", traineeUsername);
+        log.info("Getting active trainers not assigned to trainee. traineeUsername={}", traineeUsername);
         return trainerDao.findTrainersNotAssignedToTrainee(traineeUsername)
                 .stream()
+                .filter(Trainer::getIsActive)
                 .map(trainerMapper::toDTO)
                 .toList();
     }
