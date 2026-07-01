@@ -22,7 +22,7 @@ public class AuthenticationController {
 
     @ApiOperation(value = "Authenticate user")
     @GetMapping("/login")
-    public ResponseEntity<Void> login(@Valid @ModelAttribute CredentialsDTO credentials) {
+    public ResponseEntity<Void> login(@Valid @RequestParam CredentialsDTO credentials) {
         authenticationService.authenticate(credentials);
         return ResponseEntity.ok().build();
     }

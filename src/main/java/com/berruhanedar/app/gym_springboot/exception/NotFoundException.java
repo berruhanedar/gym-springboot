@@ -1,8 +1,15 @@
 package com.berruhanedar.app.gym_springboot.exception;
 
-public class NotFoundException extends BadRequestException {
+import org.springframework.http.HttpStatus;
+
+public class NotFoundException extends BaseException {
 
     public NotFoundException(String message) {
         super(message);
+    }
+
+    @Override
+    public HttpStatus getHttpStatus() {
+        return HttpStatus.NOT_FOUND;
     }
 }
