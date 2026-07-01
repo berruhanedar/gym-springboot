@@ -19,7 +19,7 @@ class AuthenticationServiceTest {
     void shouldAuthenticateTraineeWhenUsernameAndPasswordMatch() {
         AuthenticationService service = serviceWith(trainee("trainee.user", "pass"), null);
 
-        assertThatCode(() -> service.authenticateTrainee(credentials("trainee.user", "pass")))
+        assertThatCode(() -> service.authenticate(credentials("trainee.user", "pass")))
                 .doesNotThrowAnyException();
     }
 
@@ -27,10 +27,10 @@ class AuthenticationServiceTest {
     void shouldRejectTraineeWhenPasswordDoesNotMatchOrUserMissing() {
         AuthenticationService service = serviceWith(trainee("trainee.user", "pass"), null);
 
-        assertThatThrownBy(() -> service.authenticateTrainee(credentials("trainee.user", "wrong")))
+        assertThatThrownBy(() -> service.authenticate(credentials("trainee.user", "wrong")))
                 .isInstanceOf(AuthenticationException.class)
                 .hasMessageContaining("Invalid trainee username or password");
-        assertThatThrownBy(() -> service.authenticateTrainee(credentials("missing", "pass")))
+        assertThatThrownBy(() -> service.authenticate(credentials("missing", "pass")))
                 .isInstanceOf(AuthenticationException.class);
     }
 
@@ -38,7 +38,7 @@ class AuthenticationServiceTest {
     void shouldAuthenticateTrainerWhenUsernameAndPasswordMatch() {
         AuthenticationService service = serviceWith(null, trainer("trainer.user", "pass"));
 
-        assertThatCode(() -> service.authenticateTrainer(credentials("trainer.user", "pass")))
+        assertThatCode(() -> service.authenticate(credentials("trainer.user", "pass")))
                 .doesNotThrowAnyException();
     }
 
@@ -46,10 +46,10 @@ class AuthenticationServiceTest {
     void shouldRejectTrainerWhenPasswordDoesNotMatchOrUserMissing() {
         AuthenticationService service = serviceWith(null, trainer("trainer.user", "pass"));
 
-        assertThatThrownBy(() -> service.authenticateTrainer(credentials("trainer.user", "wrong")))
+        assertThatThrownBy(() -> service.authenticate(credentials("trainer.user", "wrong")))
                 .isInstanceOf(AuthenticationException.class)
                 .hasMessageContaining("Invalid trainer username or password");
-        assertThatThrownBy(() -> service.authenticateTrainer(credentials("missing", "pass")))
+        assertThatThrownBy(() -> service.authenticate(credentials("missing", "pass")))
                 .isInstanceOf(AuthenticationException.class);
     }
 

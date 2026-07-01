@@ -71,7 +71,7 @@ public class TrainerService {
 
     @Transactional
     public TrainerResponseDTO updateTrainer(CredentialsDTO credentials, @Valid UpdateTrainerRequestDTO dto) {
-        authenticationService.authenticateTrainer(credentials);
+        authenticationService.authenticate(credentials);
         log.info("Updating trainer profile. id={}", dto.getId());
 
         Trainer trainer = findTrainerById(dto.getId());
@@ -88,7 +88,7 @@ public class TrainerService {
 
     @Transactional(readOnly = true)
     public TrainerResponseDTO getTrainer(CredentialsDTO credentials, Long id) {
-        authenticationService.authenticateTrainer(credentials);
+        authenticationService.authenticate(credentials);
         log.debug("Selecting trainer profile. id={}", id);
 
         Trainer trainer = findTrainerById(id);
@@ -98,7 +98,7 @@ public class TrainerService {
 
     @Transactional(readOnly = true)
     public TrainerResponseDTO getTrainerByUsername(CredentialsDTO credentials, String username) {
-        authenticationService.authenticateTrainer(credentials);
+        authenticationService.authenticate(credentials);
         log.debug("Selecting trainer profile. username={}", username);
 
         Trainer trainer = findTrainerByUsername(username);
@@ -108,7 +108,7 @@ public class TrainerService {
 
     @Transactional
     public void changePassword(CredentialsDTO credentials, String newPassword) {
-        authenticationService.authenticateTrainer(credentials);
+        authenticationService.authenticate(credentials);
         validatePassword(newPassword);
 
         Trainer trainer = findTrainerByUsername(credentials.getUsername());
@@ -120,7 +120,7 @@ public class TrainerService {
 
     @Transactional
     public TrainerResponseDTO changeActivationStatus(CredentialsDTO credentials) {
-        authenticationService.authenticateTrainer(credentials);
+        authenticationService.authenticate(credentials);
         log.info("Changing trainer activation status. username={}", credentials.getUsername());
 
         Trainer trainer = findTrainerByUsername(credentials.getUsername());
@@ -139,7 +139,7 @@ public class TrainerService {
             CredentialsDTO credentials,
             String traineeUsername
     ) {
-        authenticationService.authenticateTrainer(credentials);
+        authenticationService.authenticate(credentials);
         log.info("Getting trainers not assigned to trainee. traineeUsername={}", traineeUsername);
 
         return trainerDao.findTrainersNotAssignedToTrainee(traineeUsername)

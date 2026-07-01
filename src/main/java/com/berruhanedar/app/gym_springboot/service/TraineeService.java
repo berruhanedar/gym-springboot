@@ -71,7 +71,7 @@ public class TraineeService {
 
     @Transactional
     public TraineeResponseDTO updateTrainee(CredentialsDTO credentials, @Valid UpdateTraineeRequestDTO dto) {
-        authenticationService.authenticateTrainee(credentials);
+        authenticationService.authenticate(credentials);
         log.info("Updating trainee profile. id={}", dto.getId());
 
         Trainee trainee = findTraineeById(dto.getId());
@@ -86,7 +86,7 @@ public class TraineeService {
 
     @Transactional
     public void deleteTrainee(CredentialsDTO credentials, Long id) {
-        authenticationService.authenticateTrainee(credentials);
+        authenticationService.authenticate(credentials);
         log.info("Deleting trainee profile. id={}", id);
 
         Trainee trainee = findTraineeById(id);
@@ -98,7 +98,7 @@ public class TraineeService {
 
     @Transactional(readOnly = true)
     public TraineeResponseDTO getTrainee(CredentialsDTO credentials, Long id) {
-        authenticationService.authenticateTrainee(credentials);
+        authenticationService.authenticate(credentials);
         log.debug("Selecting trainee profile. id={}", id);
 
         Trainee trainee = findTraineeById(id);
@@ -109,7 +109,7 @@ public class TraineeService {
 
     @Transactional(readOnly = true)
     public TraineeResponseDTO getTraineeByUsername(CredentialsDTO credentials, String username) {
-        authenticationService.authenticateTrainee(credentials);
+        authenticationService.authenticate(credentials);
         log.debug("Selecting trainee profile. username={}", username);
 
         Trainee trainee = findTraineeByUsername(username);
@@ -120,7 +120,7 @@ public class TraineeService {
 
     @Transactional
     public void changePassword(CredentialsDTO credentials, String newPassword) {
-        authenticationService.authenticateTrainee(credentials);
+        authenticationService.authenticate(credentials);
         validatePassword(newPassword);
 
         Trainee trainee = findTraineeByUsername(credentials.getUsername());
@@ -132,7 +132,7 @@ public class TraineeService {
 
     @Transactional
     public TraineeResponseDTO changeActivationStatus(CredentialsDTO credentials) {
-        authenticationService.authenticateTrainee(credentials);
+        authenticationService.authenticate(credentials);
         log.info("Changing trainee activation status. username={}", credentials.getUsername());
 
         Trainee trainee = findTraineeByUsername(credentials.getUsername());
@@ -148,7 +148,7 @@ public class TraineeService {
 
     @Transactional
     public void deleteTraineeByUsername(CredentialsDTO credentials, String username) {
-        authenticationService.authenticateTrainee(credentials);
+        authenticationService.authenticate(credentials);
         log.info("Deleting trainee profile. username={}", username);
 
         Trainee trainee = findTraineeByUsername(username);
@@ -163,7 +163,7 @@ public class TraineeService {
             CredentialsDTO credentials,
             @Valid UpdateTraineeTrainersRequestDTO dto
     ) {
-        authenticationService.authenticateTrainee(credentials);
+        authenticationService.authenticate(credentials);
         log.info("Updating trainee trainers list. username={}", dto.getTraineeUsername());
 
         Trainee trainee = findTraineeByUsername(dto.getTraineeUsername());

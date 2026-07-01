@@ -66,7 +66,7 @@ public class TrainingService {
             CredentialsDTO trainerCredentials,
             @Valid NewTrainingRequestDTO dto
     ) {
-        authenticationService.authenticateTrainer(trainerCredentials);
+        authenticationService.authenticate(trainerCredentials);
 
         log.info("Creating training. traineeId={}, trainerId={}",
                 dto.getTraineeId(), dto.getTrainerId());
@@ -88,7 +88,7 @@ public class TrainingService {
 
     @Transactional(readOnly = true)
     public TrainingResponseDTO getTraining(CredentialsDTO traineeCredentials, Long id) {
-        authenticationService.authenticateTrainee(traineeCredentials);
+        authenticationService.authenticate(traineeCredentials);
 
         log.debug("Selecting training. id={}", id);
 
@@ -106,7 +106,7 @@ public class TrainingService {
             String trainerName,
             String trainingType
     ) {
-        authenticationService.authenticateTrainee(traineeCredentials);
+        authenticationService.authenticate(traineeCredentials);
 
         log.debug("Getting trainings for trainee={}", traineeUsername);
 
@@ -129,7 +129,7 @@ public class TrainingService {
             LocalDate toDate,
             String traineeName
     ) {
-        authenticationService.authenticateTrainer(trainerCredentials);
+        authenticationService.authenticate(trainerCredentials);
 
         log.debug("Getting trainings for trainer={}", trainerUsername);
 
