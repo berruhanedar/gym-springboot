@@ -8,8 +8,8 @@ import java.time.LocalDate;
 @Data
 public class UpdateTraineeRequestDTO {
 
-    @NotNull
-    private Long id;
+    @NotBlank
+    private String username;
 
     @NotBlank
     @Size(min = 2, max = 50)

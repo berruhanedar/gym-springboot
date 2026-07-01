@@ -1,9 +1,6 @@
 package com.berruhanedar.app.gym_springboot.controller;
 
-import com.berruhanedar.app.gym_springboot.dto.CredentialsDTO;
-import com.berruhanedar.app.gym_springboot.dto.NewTraineeRequestDTO;
-import com.berruhanedar.app.gym_springboot.dto.RegistrationResponseDTO;
-import com.berruhanedar.app.gym_springboot.dto.TraineeResponseDTO;
+import com.berruhanedar.app.gym_springboot.dto.*;
 import com.berruhanedar.app.gym_springboot.service.TraineeService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -33,5 +30,10 @@ public class TraineeController {
         return ResponseEntity.ok(response);
     }
 
+    @PutMapping("/trainees")
+    public ResponseEntity<TraineeResponseDTO> updateTraineeProfile(@Valid CredentialsDTO credentials, @Valid @RequestBody UpdateTraineeRequestDTO request) {
+        TraineeResponseDTO response = traineeService.updateTrainee(credentials, request);
+        return ResponseEntity.ok(response);
+    }
 
 }
