@@ -114,6 +114,17 @@ public class TraineeService {
                 .toList();
     }
 
+    @Transactional
+    public void changeActivationStatus(CredentialsDTO credentials, @Valid UpdateActivationStatusDTO dto) {
+        authenticationService.authenticate(credentials);
+        log.info("Updating trainee activation status. username={}, isActive={}", dto.getUsername(), dto.getIsActive());
+        Trainee trainee = findTraineeByUsername(dto.getUsername());
+        validateTraineeOwnsProfile(credentials, trainee);
+        trainee.setIsActive(dto.getIsActive());
+        traineeDao.update(trainee);
+        log.info("Trainee activation status updated successfully. username={}, isActive={}", dto.getUsername(), dto.getIsActive());
+    }
+
     @Transactional(readOnly = true)
     public TraineeResponseDTO getTrainee(CredentialsDTO credentials, Long id) {
         authenticationService.authenticate(credentials);
@@ -121,17 +132,6 @@ public class TraineeService {
         Trainee trainee = findTraineeById(id);
         validateTraineeOwnsProfile(credentials, trainee);
         return traineeMapper.toDTO(trainee);
-    }
-
-    @Transactional
-    public TraineeResponseDTO changeActivationStatus(CredentialsDTO credentials) {
-        authenticationService.authenticate(credentials);
-        log.info("Changing trainee activation status. username={}", credentials.getUsername());
-        Trainee trainee = findTraineeByUsername(credentials.getUsername());
-        trainee.setIsActive(!trainee.getIsActive());
-        Trainee updated = traineeDao.update(trainee);
-        log.info("Trainee activation status changed. username={}, isActive={}", credentials.getUsername(), updated.getIsActive());
-        return traineeMapper.toDTO(updated);
     }
 
     @Transactional

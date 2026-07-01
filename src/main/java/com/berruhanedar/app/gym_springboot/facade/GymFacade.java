@@ -54,8 +54,8 @@ public class GymFacade {
         return traineeService.getTraineeByUsername(credentials, username);
     }
 
-    public TraineeResponseDTO changeTraineeActivationStatus(CredentialsDTO credentials) {
-        return traineeService.changeActivationStatus(credentials);
+    public void changeTraineeActivationStatus(CredentialsDTO credentials, UpdateActivationStatusDTO dto) {
+        traineeService.changeActivationStatus(credentials, dto);
     }
 
     public void deleteTraineeByUsername(CredentialsDTO credentials, String username) {
@@ -86,8 +86,8 @@ public class GymFacade {
         return trainerService.getTrainersNotAssignedToTrainee(credentials, traineeUsername);
     }
 
-    public TrainingResponseDTO createTraining(CredentialsDTO trainerCredentials, NewTrainingRequestDTO dto) {
-        return trainingService.createTraining(trainerCredentials, dto);
+    public void createTraining(CredentialsDTO trainerCredentials, NewTrainingRequestDTO dto) {
+        trainingService.createTraining(trainerCredentials, dto);
     }
 
     public TrainingResponseDTO getTraining(CredentialsDTO credentials, Long id) {

@@ -59,4 +59,10 @@ public class TraineeController {
         return ResponseEntity.ok(response);
     }
 
+    @PatchMapping("/trainees/activation")
+    public ResponseEntity<Void> changeActivationStatus(@Valid CredentialsDTO credentials, @Valid @RequestBody UpdateActivationStatusDTO request) {
+        traineeService.changeActivationStatus(credentials, request);
+        return ResponseEntity.ok().build();
+    }
+
 }
