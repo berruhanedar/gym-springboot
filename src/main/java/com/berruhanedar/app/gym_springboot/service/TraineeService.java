@@ -54,7 +54,7 @@ public class TraineeService {
     }
 
     @Transactional
-    public TraineeResponseDTO createTrainee(@Valid NewTraineeRequestDTO dto) {
+    public RegistrationResponseDTO createTrainee(@Valid NewTraineeRequestDTO dto) {
         log.info("Creating trainee profile for {} {}", dto.getFirstName(), dto.getLastName());
 
         Trainee trainee = traineeMapper.toEntity(dto);
@@ -65,7 +65,8 @@ public class TraineeService {
         Trainee saved = traineeDao.save(trainee);
 
         log.info("Trainee profile created successfully. id={}", saved.getId());
-        return traineeMapper.toDTO(saved);
+
+        return traineeMapper.toRegistrationResponseDTO(saved);
     }
 
     @Transactional

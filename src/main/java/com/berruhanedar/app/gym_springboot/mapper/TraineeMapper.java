@@ -11,6 +11,8 @@ public interface TraineeMapper {
 
     TraineeResponseDTO toDTO(Trainee trainee);
 
+    RegistrationResponseDTO toRegistrationResponseDTO(Trainee trainee);
+
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "username", ignore = true)
     @Mapping(target = "password", ignore = true)
