@@ -1,6 +1,7 @@
 package com.berruhanedar.app.gym_springboot.mapper;
 
 import com.berruhanedar.app.gym_springboot.dto.NewTrainerRequestDTO;
+import com.berruhanedar.app.gym_springboot.dto.RegistrationResponseDTO;
 import com.berruhanedar.app.gym_springboot.dto.TrainerResponseDTO;
 import com.berruhanedar.app.gym_springboot.dto.UpdateTrainerRequestDTO;
 import com.berruhanedar.app.gym_springboot.entity.Trainer;
@@ -13,6 +14,8 @@ public interface TrainerMapper {
 
     @Mapping(source = "specialization.trainingTypeName", target = "specializationName")
     TrainerResponseDTO toDTO(Trainer trainer);
+
+    RegistrationResponseDTO toRegistrationResponseDTO(Trainer trainer);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "username", ignore = true)

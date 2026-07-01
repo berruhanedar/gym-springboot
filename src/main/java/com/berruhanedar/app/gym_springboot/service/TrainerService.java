@@ -52,7 +52,7 @@ public class TrainerService {
     }
 
     @Transactional
-    public TrainerResponseDTO createTrainer(@Valid NewTrainerRequestDTO dto) {
+    public RegistrationResponseDTO createTrainer(@Valid NewTrainerRequestDTO dto) {
         log.info("Creating trainer profile for {} {}", dto.getFirstName(), dto.getLastName());
 
         TrainingType specialization = findTrainingTypeByName(dto.getSpecializationName());
@@ -66,7 +66,7 @@ public class TrainerService {
         Trainer saved = trainerDao.save(trainer);
 
         log.info("Trainer profile created successfully. id={}", saved.getId());
-        return trainerMapper.toDTO(saved);
+        return trainerMapper.toRegistrationResponseDTO(saved);
     }
 
     @Transactional
