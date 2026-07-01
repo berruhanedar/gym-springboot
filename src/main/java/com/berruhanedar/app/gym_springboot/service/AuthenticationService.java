@@ -25,18 +25,19 @@ public class AuthenticationService {
     }
 
     @Transactional(readOnly = true)
-    public void authenticateTrainee(CredentialsDTO credentials) {
-        traineeDao.findByUsername(credentials.getUsername())
-                .filter(trainee -> trainee.getPassword().equals(credentials.getPassword()))
-                .orElseThrow(() ->
-                        new AuthenticationException("Invalid trainee username or password."));
-    }
+    public void authenticate(CredentialsDTO credentials) {
 
-    @Transactional(readOnly = true)
-    public void authenticateTrainer(CredentialsDTO credentials) {
-        trainerDao.findByUsername(credentials.getUsername())
-                .filter(trainer -> trainer.getPassword().equals(credentials.getPassword()))
-                .orElseThrow(() ->
-                        new AuthenticationException("Invalid trainer username or password."));
+        boolean authenticated =
+                traineeDao.findByUsername(credentials.getUsername())
+                        .filter(t -> t.getPassword().equals(credentials.getPassword()))
+                        .isPresent()
+                        ||
+                        trainerDao.findByUsername(credentials.getUsername())
+                                .filter(t -> t.getPassword().equals(credentials.getPassword()))
+                                .isPresent();
+
+        if (!authenticated) {
+            throw new AuthenticationException("Invalid username or password.");
+        }
     }
 }
