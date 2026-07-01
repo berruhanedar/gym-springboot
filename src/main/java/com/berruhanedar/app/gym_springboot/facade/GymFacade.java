@@ -4,7 +4,6 @@ import com.berruhanedar.app.gym_springboot.dto.*;
 import com.berruhanedar.app.gym_springboot.service.*;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Component
@@ -42,20 +41,12 @@ public class GymFacade {
         return traineeService.updateTrainee(credentials, dto);
     }
 
-    public void deleteTrainee(CredentialsDTO credentials, Long id) {
-        traineeService.deleteTrainee(credentials, id);
-    }
-
-    public TraineeResponseDTO getTrainee(CredentialsDTO credentials, Long id) {
-        return traineeService.getTrainee(credentials, id);
-    }
-
     public TraineeResponseDTO getTraineeByUsername(CredentialsDTO credentials, String username) {
         return traineeService.getTraineeByUsername(credentials, username);
     }
 
     public void changeTraineeActivationStatus(CredentialsDTO credentials, UpdateActivationStatusDTO dto) {
-        traineeService.changeActivationStatus(credentials, dto);
+        traineeService.changeTraineeActivationStatus(credentials, dto);
     }
 
     public void deleteTraineeByUsername(CredentialsDTO credentials, String username) {
@@ -68,10 +59,6 @@ public class GymFacade {
 
     public TrainerResponseDTO updateTrainer(CredentialsDTO credentials, UpdateTrainerRequestDTO dto) {
         return trainerService.updateTrainer(credentials, dto);
-    }
-
-    public TrainerResponseDTO getTrainer(CredentialsDTO credentials, Long id) {
-        return trainerService.getTrainer(credentials, id);
     }
 
     public TrainerResponseDTO getTrainerByUsername(CredentialsDTO credentials, String username) {
@@ -90,15 +77,15 @@ public class GymFacade {
         trainingService.createTraining(trainerCredentials, dto);
     }
 
-    public TrainingResponseDTO getTraining(CredentialsDTO credentials, Long id) {
-        return trainingService.getTraining(credentials, id);
-    }
-
     public List<TrainingResponseDTO> getTraineeTrainings(CredentialsDTO traineeCredentials, String traineeUsername, TraineeTrainingsFilterDTO filter) {
         return trainingService.getTraineeTrainings(traineeCredentials, traineeUsername, filter);
     }
 
     public List<TrainingResponseDTO> getTrainerTrainings(CredentialsDTO trainerCredentials, String trainerUsername, TrainerTrainingsFilterDTO filter) {
         return trainingService.getTrainerTrainings(trainerCredentials, trainerUsername, filter);
+    }
+
+    public List<TrainingTypeResponseDTO> getTrainingTypes() {
+        return trainingService.getTrainingTypes();
     }
 }

@@ -99,14 +99,6 @@ public class TrainerService {
     }
 
     @Transactional(readOnly = true)
-    public TrainerResponseDTO getTrainer(CredentialsDTO credentials, Long id) {
-        authenticationService.authenticate(credentials);
-        log.debug("Selecting trainer profile. id={}", id);
-        Trainer trainer = findTrainerById(id);
-        return trainerMapper.toDTO(trainer);
-    }
-
-    @Transactional(readOnly = true)
     public List<TrainerResponseDTO> getTrainersNotAssignedToTrainee(CredentialsDTO credentials, String traineeUsername) {
         authenticationService.authenticate(credentials);
         log.info("Getting active trainers not assigned to trainee. traineeUsername={}", traineeUsername);
@@ -115,11 +107,6 @@ public class TrainerService {
                 .filter(Trainer::getIsActive)
                 .map(trainerMapper::toDTO)
                 .toList();
-    }
-
-    private Trainer findTrainerById(Long id) {
-        return trainerDao.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Trainer not found. id=" + id));
     }
 
     private Trainer findTrainerByUsername(String username) {

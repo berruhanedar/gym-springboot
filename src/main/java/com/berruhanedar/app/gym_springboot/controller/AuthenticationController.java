@@ -4,7 +4,6 @@ import com.berruhanedar.app.gym_springboot.dto.ChangePasswordRequestDTO;
 import com.berruhanedar.app.gym_springboot.dto.CredentialsDTO;
 import com.berruhanedar.app.gym_springboot.service.AuthenticationService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +18,7 @@ public class AuthenticationController {
     }
 
     @GetMapping("/login")
-    public ResponseEntity<Void> login(@Valid CredentialsDTO credentials) {
+    public ResponseEntity<Void> login(@Valid @ModelAttribute CredentialsDTO credentials) {
         authenticationService.authenticate(credentials);
         return ResponseEntity.ok().build();
     }
@@ -29,5 +28,4 @@ public class AuthenticationController {
         authenticationService.changePassword(request);
         return ResponseEntity.ok().build();
     }
-
 }

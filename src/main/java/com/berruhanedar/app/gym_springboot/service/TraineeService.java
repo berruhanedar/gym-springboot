@@ -87,16 +87,6 @@ public class TraineeService {
     }
 
     @Transactional
-    public void deleteTrainee(CredentialsDTO credentials, Long id) {
-        authenticationService.authenticate(credentials);
-        log.info("Deleting trainee profile. id={}", id);
-        Trainee trainee = findTraineeById(id);
-        validateTraineeOwnsProfile(credentials, trainee);
-        traineeDao.delete(trainee);
-        log.info("Trainee profile deleted successfully. id={}", id);
-    }
-
-    @Transactional
     public List<TrainerSummaryDTO> updateTraineeTrainers(CredentialsDTO credentials, @Valid UpdateTraineeTrainersRequestDTO dto) {
         authenticationService.authenticate(credentials);
         log.info("Updating trainee trainers list. username={}", dto.getTraineeUsername());
@@ -115,7 +105,7 @@ public class TraineeService {
     }
 
     @Transactional
-    public void changeActivationStatus(CredentialsDTO credentials, @Valid UpdateActivationStatusDTO dto) {
+    public void changeTraineeActivationStatus(CredentialsDTO credentials, @Valid UpdateActivationStatusDTO dto) {
         authenticationService.authenticate(credentials);
         log.info("Updating trainee activation status. username={}, isActive={}", dto.getUsername(), dto.getIsActive());
         Trainee trainee = findTraineeByUsername(dto.getUsername());
@@ -123,15 +113,6 @@ public class TraineeService {
         trainee.setIsActive(dto.getIsActive());
         traineeDao.update(trainee);
         log.info("Trainee activation status updated successfully. username={}, isActive={}", dto.getUsername(), dto.getIsActive());
-    }
-
-    @Transactional(readOnly = true)
-    public TraineeResponseDTO getTrainee(CredentialsDTO credentials, Long id) {
-        authenticationService.authenticate(credentials);
-        log.debug("Selecting trainee profile. id={}", id);
-        Trainee trainee = findTraineeById(id);
-        validateTraineeOwnsProfile(credentials, trainee);
-        return traineeMapper.toDTO(trainee);
     }
 
     @Transactional
@@ -142,10 +123,6 @@ public class TraineeService {
         validateTraineeOwnsProfile(credentials, trainee);
         traineeDao.delete(trainee);
         log.info("Trainee profile deleted successfully. username={}", username);
-    }
-
-    private Trainee findTraineeById(Long id) {
-        return traineeDao.findById(id).orElseThrow(() -> new EntityNotFoundException("Trainee not found. id=" + id));
     }
 
     private Trainee findTraineeByUsername(String username) {

@@ -1,11 +1,7 @@
 package com.berruhanedar.app.gym_springboot.service;
 
 import com.berruhanedar.app.gym_springboot.config.AppConfig;
-import com.berruhanedar.app.gym_springboot.dao.TraineeDao;
-import com.berruhanedar.app.gym_springboot.dao.TrainerDao;
 import com.berruhanedar.app.gym_springboot.dto.*;
-import com.berruhanedar.app.gym_springboot.entity.Trainee;
-import com.berruhanedar.app.gym_springboot.entity.Trainer;
 import com.berruhanedar.app.gym_springboot.entity.TrainingType;
 import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
@@ -33,158 +29,224 @@ class TrainingServiceTest {
     private GymFacade gymFacade;
 
     @Autowired
-    private TraineeDao traineeDao;
-
-    @Autowired
-    private TrainerDao trainerDao;
-
-    @Autowired
     private TransactionTemplate transactionTemplate;
 
     @Autowired
     private SessionFactory sessionFactory;
 
     @Test
-    void shouldCreateAndGetTrainingWhenCredentialsAndReferencesAreValid() {
+    void shouldCreateTrainingWhenCredentialsAndReferencesAreValid() {
         TrainingType yoga = ensureTrainingType("Yoga");
-        TraineeResponseDTO trainee = createTrainee("Sophia", "Williams");
-        TrainerResponseDTO trainer = createTrainer("James", "Wilson", yoga);
 
-        TrainingResponseDTO created = gymFacade.createTraining(
-                trainerCredentials(trainer),
-                newTraining(trainee.getId(), trainer.getId(), "Morning Yoga", "Yoga", LocalDate.now().plusDays(1), 45));
-        TrainingResponseDTO found = gymFacade.getTraining(traineeCredentials(trainee), created.getId());
+        RegistrationResponseDTO trainee = createTrainee("Sophia", "Williams");
+        RegistrationResponseDTO trainer = createTrainer("James", "Wilson", yoga);
 
-        assertThat(created.getId()).isNotNull();
-        assertThat(found.getId()).isEqualTo(created.getId());
-        assertThat(found.getTraineeId()).isEqualTo(trainee.getId());
-        assertThat(found.getTrainerId()).isEqualTo(trainer.getId());
-        assertThat(found.getTrainingName()).isEqualTo("Morning Yoga");
-        assertThat(found.getTrainingTypeName()).isEqualTo("Yoga");
-        assertThat(found.getTrainingDuration()).isEqualTo(45);
+        gymFacade.createTraining(
+                credentials(trainer),
+                newTraining(
+                        trainee.getUsername(),
+                        trainer.getUsername(),
+                        "Morning Yoga",
+                        LocalDate.now().plusDays(1),
+                        45
+                )
+        );
+
+        List<TrainingResponseDTO> trainings = gymFacade.getTraineeTrainings(
+                credentials(trainee),
+                trainee.getUsername(),
+                traineeFilter(null, null, null, null)
+        );
+
+        assertThat(trainings).hasSize(1);
+        assertThat(trainings.get(0).getTrainingName()).isEqualTo("Morning Yoga");
+        assertThat(trainings.get(0).getTrainingTypeName()).isEqualTo("Yoga");
+        assertThat(trainings.get(0).getTrainingDuration()).isEqualTo(45);
+        assertThat(trainings.get(0).getTrainerName()).isEqualTo("James Wilson");
     }
 
     @Test
     void shouldFilterTraineeTrainingsByDateTrainerNameAndTrainingType() {
         TrainingType yoga = ensureTrainingType("Yoga");
         TrainingType cardio = ensureTrainingType("Cardio");
-        TraineeResponseDTO trainee = createTrainee("Grace", "Hall");
-        TrainerResponseDTO yogaTrainer = createTrainer("Henry", "Young", yoga);
-        TrainerResponseDTO cardioTrainer = createTrainer("Liam", "Stone", cardio);
 
-        TrainingResponseDTO expected = gymFacade.createTraining(trainerCredentials(yogaTrainer),
-                newTraining(trainee.getId(), yogaTrainer.getId(), "Yoga Match", "Yoga", LocalDate.now().plusDays(2), 50));
-        gymFacade.createTraining(trainerCredentials(cardioTrainer),
-                newTraining(trainee.getId(), cardioTrainer.getId(), "Cardio Out", "Cardio", LocalDate.now().plusDays(2), 30));
-        gymFacade.createTraining(trainerCredentials(yogaTrainer),
-                newTraining(trainee.getId(), yogaTrainer.getId(), "Old Yoga", "Yoga", LocalDate.now().plusDays(10), 40));
+        RegistrationResponseDTO trainee = createTrainee("Grace", "Hall");
+        RegistrationResponseDTO yogaTrainer = createTrainer("Henry", "Young", yoga);
+        RegistrationResponseDTO cardioTrainer = createTrainer("Liam", "Stone", cardio);
+
+        gymFacade.createTraining(
+                credentials(yogaTrainer),
+                newTraining(trainee.getUsername(), yogaTrainer.getUsername(), "Yoga Match",
+                        LocalDate.now().plusDays(2), 50)
+        );
+
+        gymFacade.createTraining(
+                credentials(cardioTrainer),
+                newTraining(trainee.getUsername(), cardioTrainer.getUsername(), "Cardio Out",
+                        LocalDate.now().plusDays(2), 30)
+        );
+
+        gymFacade.createTraining(
+                credentials(yogaTrainer),
+                newTraining(trainee.getUsername(), yogaTrainer.getUsername(), "Old Yoga",
+                        LocalDate.now().plusDays(10), 40)
+        );
 
         List<TrainingResponseDTO> result = gymFacade.getTraineeTrainings(
-                traineeCredentials(trainee),
+                credentials(trainee),
                 trainee.getUsername(),
-                LocalDate.now().plusDays(1),
-                LocalDate.now().plusDays(3),
-                "Henry You",
-                "Yoga");
+                traineeFilter(
+                        LocalDate.now().plusDays(1),
+                        LocalDate.now().plusDays(3),
+                        "Henry You",
+                        "Yoga"
+                )
+        );
 
-        assertThat(result)
-                .extracting(TrainingResponseDTO::getId)
-                .containsExactly(expected.getId());
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getTrainingName()).isEqualTo("Yoga Match");
     }
 
     @Test
     void shouldFilterTrainerTrainingsByDateAndTraineeName() {
         TrainingType pilates = ensureTrainingType("Pilates");
-        TrainerResponseDTO trainer = createTrainer("Trainer", "Filter", pilates);
-        TraineeResponseDTO expectedTrainee = createTrainee("Expected", "Person");
-        TraineeResponseDTO otherTrainee = createTrainee("Other", "Person");
 
-        TrainingResponseDTO expected = gymFacade.createTraining(trainerCredentials(trainer),
-                newTraining(expectedTrainee.getId(), trainer.getId(), "Pilates Match", "Pilates", LocalDate.now().plusDays(4), 55));
-        gymFacade.createTraining(trainerCredentials(trainer),
-                newTraining(otherTrainee.getId(), trainer.getId(), "Pilates Other", "Pilates", LocalDate.now().plusDays(4), 35));
-        gymFacade.createTraining(trainerCredentials(trainer),
-                newTraining(expectedTrainee.getId(), trainer.getId(), "Pilates Later", "Pilates", LocalDate.now().plusDays(20), 35));
+        RegistrationResponseDTO trainer = createTrainer("Trainer", "Filter", pilates);
+        RegistrationResponseDTO expectedTrainee = createTrainee("Expected", "Person");
+        RegistrationResponseDTO otherTrainee = createTrainee("Other", "Person");
+
+        gymFacade.createTraining(
+                credentials(trainer),
+                newTraining(expectedTrainee.getUsername(), trainer.getUsername(), "Pilates Match",
+                        LocalDate.now().plusDays(4), 55)
+        );
+
+        gymFacade.createTraining(
+                credentials(trainer),
+                newTraining(otherTrainee.getUsername(), trainer.getUsername(), "Pilates Other",
+                        LocalDate.now().plusDays(4), 35)
+        );
+
+        gymFacade.createTraining(
+                credentials(trainer),
+                newTraining(expectedTrainee.getUsername(), trainer.getUsername(), "Pilates Later",
+                        LocalDate.now().plusDays(20), 35)
+        );
 
         List<TrainingResponseDTO> result = gymFacade.getTrainerTrainings(
-                trainerCredentials(trainer),
+                credentials(trainer),
                 trainer.getUsername(),
-                LocalDate.now().plusDays(3),
-                LocalDate.now().plusDays(5),
-                "Expected Per");
+                trainerFilter(
+                        LocalDate.now().plusDays(3),
+                        LocalDate.now().plusDays(5),
+                        "Expected Per"
+                )
+        );
 
-        assertThat(result)
-                .extracting(TrainingResponseDTO::getId)
-                .containsExactly(expected.getId());
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getTrainingName()).isEqualTo("Pilates Match");
+        assertThat(result.get(0).getTraineeName()).isEqualTo("Expected Person");
     }
 
     @Test
     void shouldReturnAllMatchingTrainingsWhenOptionalCriteriaAreBlankOrNull() {
         TrainingType stretching = ensureTrainingType("Stretching");
-        TraineeResponseDTO trainee = createTrainee("Blank", "Criteria");
-        TrainerResponseDTO trainer = createTrainer("Blank", "Trainer", stretching);
 
-        TrainingResponseDTO first = gymFacade.createTraining(trainerCredentials(trainer),
-                newTraining(trainee.getId(), trainer.getId(), "Stretch One", "Stretching", LocalDate.now().plusDays(1), 20));
-        TrainingResponseDTO second = gymFacade.createTraining(trainerCredentials(trainer),
-                newTraining(trainee.getId(), trainer.getId(), "Stretch Two", "Stretching", LocalDate.now().plusDays(2), 25));
+        RegistrationResponseDTO trainee = createTrainee("Blank", "Criteria");
+        RegistrationResponseDTO trainer = createTrainer("Blank", "Trainer", stretching);
+
+        gymFacade.createTraining(
+                credentials(trainer),
+                newTraining(trainee.getUsername(), trainer.getUsername(), "Stretch One",
+                        LocalDate.now().plusDays(1), 20)
+        );
+
+        gymFacade.createTraining(
+                credentials(trainer),
+                newTraining(trainee.getUsername(), trainer.getUsername(), "Stretch Two",
+                        LocalDate.now().plusDays(2), 25)
+        );
 
         List<TrainingResponseDTO> result = gymFacade.getTraineeTrainings(
-                traineeCredentials(trainee), trainee.getUsername(), null, null, " ", "");
+                credentials(trainee),
+                trainee.getUsername(),
+                traineeFilter(null, null, " ", "")
+        );
 
         assertThat(result)
-                .extracting(TrainingResponseDTO::getId)
-                .containsExactlyInAnyOrder(first.getId(), second.getId());
+                .extracting(TrainingResponseDTO::getTrainingName)
+                .containsExactlyInAnyOrder("Stretch One", "Stretch Two");
     }
 
     @Test
-    void shouldThrowExceptionWhenTrainingOrReferencesAreMissing() {
+    void shouldThrowExceptionWhenTrainingReferencesAreMissing() {
         TrainingType yoga = ensureTrainingType("Yoga");
-        TraineeResponseDTO trainee = createTrainee("Lily", "Scott");
-        TrainerResponseDTO trainer = createTrainer("Valid", "Trainer", yoga);
 
-        assertThatThrownBy(() -> gymFacade.getTraining(traineeCredentials(trainee), 999L))
-                .isInstanceOf(EntityNotFoundException.class);
-        assertThatThrownBy(() -> gymFacade.createTraining(trainerCredentials(trainer),
-                newTraining(999L, trainer.getId(), "Invalid Trainee", "Yoga", LocalDate.now().plusDays(1), 60)))
+        RegistrationResponseDTO trainee = createTrainee("Lily", "Scott");
+        RegistrationResponseDTO trainer = createTrainer("Valid", "Trainer", yoga);
+
+        assertThatThrownBy(() -> gymFacade.createTraining(
+                credentials(trainer),
+                newTraining("missing.trainee", trainer.getUsername(), "Invalid Trainee",
+                        LocalDate.now().plusDays(1), 60)
+        ))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("Trainee not found");
-        assertThatThrownBy(() -> gymFacade.createTraining(trainerCredentials(trainer),
-                newTraining(trainee.getId(), 999L, "Invalid Trainer", "Yoga", LocalDate.now().plusDays(1), 60)))
+
+        assertThatThrownBy(() -> gymFacade.createTraining(
+                credentials(trainer),
+                newTraining(trainee.getUsername(), "missing.trainer", "Invalid Trainer",
+                        LocalDate.now().plusDays(1), 60)
+        ))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("Trainer not found");
-        assertThatThrownBy(() -> gymFacade.createTraining(trainerCredentials(trainer),
-                newTraining(trainee.getId(), trainer.getId(), "Invalid Type", "UnknownType", LocalDate.now().plusDays(1), 60)))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("Training type not found");
     }
 
     @Test
     void shouldRejectTrainingOperationsWhenCredentialsAreInvalid() {
         TrainingType yoga = ensureTrainingType("Yoga");
-        TraineeResponseDTO trainee = createTrainee("Auth", "Trainee");
-        TrainerResponseDTO trainer = createTrainer("Auth", "Trainer", yoga);
+
+        RegistrationResponseDTO trainee = createTrainee("Auth", "Trainee");
+        RegistrationResponseDTO trainer = createTrainer("Auth", "Trainer", yoga);
+
         CredentialsDTO wrongTrainerCredentials = credentials(trainer.getUsername(), "wrong-pass");
         CredentialsDTO wrongTraineeCredentials = credentials(trainee.getUsername(), "wrong-pass");
 
-        assertThatThrownBy(() -> gymFacade.createTraining(wrongTrainerCredentials,
-                newTraining(trainee.getId(), trainer.getId(), "Auth Fail", "Yoga", LocalDate.now().plusDays(1), 45)))
+        assertThatThrownBy(() -> gymFacade.createTraining(
+                wrongTrainerCredentials,
+                newTraining(trainee.getUsername(), trainer.getUsername(), "Auth Fail",
+                        LocalDate.now().plusDays(1), 45)
+        ))
                 .isInstanceOf(AuthenticationException.class);
 
-        TrainingResponseDTO saved = gymFacade.createTraining(trainerCredentials(trainer),
-                newTraining(trainee.getId(), trainer.getId(), "Auth Ok", "Yoga", LocalDate.now().plusDays(1), 45));
+        assertThatThrownBy(() -> gymFacade.getTraineeTrainings(
+                wrongTraineeCredentials,
+                trainee.getUsername(),
+                traineeFilter(null, null, null, null)
+        ))
+                .isInstanceOf(AuthenticationException.class);
 
-        assertThatThrownBy(() -> gymFacade.getTraining(wrongTraineeCredentials, saved.getId()))
-                .isInstanceOf(AuthenticationException.class);
-        assertThatThrownBy(() -> gymFacade.getTraineeTrainings(wrongTraineeCredentials,
-                trainee.getUsername(), null, null, null, null))
-                .isInstanceOf(AuthenticationException.class);
-        assertThatThrownBy(() -> gymFacade.getTrainerTrainings(wrongTrainerCredentials,
-                trainer.getUsername(), null, null, null))
+        assertThatThrownBy(() -> gymFacade.getTrainerTrainings(
+                wrongTrainerCredentials,
+                trainer.getUsername(),
+                trainerFilter(null, null, null)
+        ))
                 .isInstanceOf(AuthenticationException.class);
     }
 
-    private TraineeResponseDTO createTrainee(String firstName, String lastName) {
+    @Test
+    void shouldReturnTrainingTypes() {
+        ensureTrainingType("Yoga");
+        ensureTrainingType("Cardio");
+
+        List<TrainingTypeResponseDTO> result = gymFacade.getTrainingTypes();
+
+        assertThat(result)
+                .extracting(TrainingTypeResponseDTO::getTrainingTypeName)
+                .contains("Yoga", "Cardio");
+    }
+
+    private RegistrationResponseDTO createTrainee(String firstName, String lastName) {
         NewTraineeRequestDTO dto = new NewTraineeRequestDTO();
         dto.setFirstName(firstName);
         dto.setLastName(lastName);
@@ -192,7 +254,11 @@ class TrainingServiceTest {
         return gymFacade.createTrainee(dto);
     }
 
-    private TrainerResponseDTO createTrainer(String firstName, String lastName, TrainingType specialization) {
+    private RegistrationResponseDTO createTrainer(
+            String firstName,
+            String lastName,
+            TrainingType specialization) {
+
         NewTrainerRequestDTO dto = new NewTrainerRequestDTO();
         dto.setFirstName(firstName);
         dto.setLastName(lastName);
@@ -200,34 +266,24 @@ class TrainingServiceTest {
         return gymFacade.createTrainer(dto);
     }
 
-    private NewTrainingRequestDTO newTraining(Long traineeId,
-                                              Long trainerId,
-                                              String name,
-                                              String trainingType,
-                                              LocalDate date,
-                                              Integer duration) {
+    private NewTrainingRequestDTO newTraining(
+            String traineeUsername,
+            String trainerUsername,
+            String name,
+            LocalDate date,
+            Integer duration) {
+
         NewTrainingRequestDTO dto = new NewTrainingRequestDTO();
-        dto.setTraineeId(traineeId);
-        dto.setTrainerId(trainerId);
+        dto.setTraineeUsername(traineeUsername);
+        dto.setTrainerUsername(trainerUsername);
         dto.setTrainingName(name);
-        dto.setTrainingTypeName(trainingType);
         dto.setTrainingDate(date);
         dto.setTrainingDuration(duration);
         return dto;
     }
 
-    private CredentialsDTO traineeCredentials(TraineeResponseDTO trainee) {
-        return transactionTemplate.execute(status -> {
-            Trainee entity = traineeDao.findByUsername(trainee.getUsername()).orElseThrow();
-            return credentials(entity.getUsername(), entity.getPassword());
-        });
-    }
-
-    private CredentialsDTO trainerCredentials(TrainerResponseDTO trainer) {
-        return transactionTemplate.execute(status -> {
-            Trainer entity = trainerDao.findByUsername(trainer.getUsername()).orElseThrow();
-            return credentials(entity.getUsername(), entity.getPassword());
-        });
+    private CredentialsDTO credentials(RegistrationResponseDTO response) {
+        return credentials(response.getUsername(), response.getPassword());
     }
 
     private CredentialsDTO credentials(String username, String password) {
@@ -237,17 +293,46 @@ class TrainingServiceTest {
         return credentials;
     }
 
+    private TraineeTrainingsFilterDTO traineeFilter(
+            LocalDate periodFrom,
+            LocalDate periodTo,
+            String trainerName,
+            String trainingType) {
+
+        TraineeTrainingsFilterDTO filter = new TraineeTrainingsFilterDTO();
+        filter.setPeriodFrom(periodFrom);
+        filter.setPeriodTo(periodTo);
+        filter.setTrainerName(trainerName);
+        filter.setTrainingType(trainingType);
+        return filter;
+    }
+
+    private TrainerTrainingsFilterDTO trainerFilter(
+            LocalDate periodFrom,
+            LocalDate periodTo,
+            String traineeName) {
+
+        TrainerTrainingsFilterDTO filter = new TrainerTrainingsFilterDTO();
+        filter.setPeriodFrom(periodFrom);
+        filter.setPeriodTo(periodTo);
+        filter.setTraineeName(traineeName);
+        return filter;
+    }
+
     private TrainingType ensureTrainingType(String name) {
         return transactionTemplate.execute(status -> {
             var session = sessionFactory.getCurrentSession();
+
             TrainingType existing = session.createQuery(
                             "FROM TrainingType t WHERE LOWER(t.trainingTypeName) = LOWER(:name)",
                             TrainingType.class)
                     .setParameter("name", name)
                     .uniqueResult();
+
             if (existing != null) {
                 return existing;
             }
+
             TrainingType type = new TrainingType();
             type.setTrainingTypeName(name);
             session.persist(type);

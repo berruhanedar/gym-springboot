@@ -8,7 +8,6 @@ import com.berruhanedar.app.gym_springboot.dto.*;
 import com.berruhanedar.app.gym_springboot.entity.Trainee;
 import com.berruhanedar.app.gym_springboot.entity.Trainer;
 import com.berruhanedar.app.gym_springboot.entity.Training;
-import com.berruhanedar.app.gym_springboot.entity.TrainingType;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TrainingMapper;
 import jakarta.validation.Valid;
@@ -17,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Slf4j
@@ -113,18 +111,6 @@ public class TrainingService {
                     return dto;
                 })
                 .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public TrainingResponseDTO getTraining(CredentialsDTO traineeCredentials, Long id) {
-        authenticationService.authenticate(traineeCredentials);
-        log.debug("Selecting training. id={}", id);
-        Training training = findTrainingById(id);
-        return trainingMapper.toDTO(training);
-    }
-
-    private Training findTrainingById(Long id) {
-        return trainingDao.findById(id).orElseThrow(() -> new EntityNotFoundException("Training not found. id=" + id));
     }
 
     private Trainee findTraineeByUsername(String username) {

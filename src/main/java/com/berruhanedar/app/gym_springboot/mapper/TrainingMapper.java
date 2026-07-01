@@ -9,8 +9,8 @@ import org.mapstruct.Mapping;
 public interface TrainingMapper {
 
     @Mapping(source = "trainingType.trainingTypeName", target = "trainingTypeName")
-    @Mapping(source = "trainer.firstName", target = "trainerName")
-    @Mapping(source = "trainee.firstName", target = "traineeName")
+    @Mapping(target = "trainerName", expression = "java(training.getTrainer().getFirstName() + \" \" + training.getTrainer().getLastName())")
+    @Mapping(target = "traineeName", expression = "java(training.getTrainee().getFirstName() + \" \" + training.getTrainee().getLastName())")
     TrainingResponseDTO toDTO(Training training);
 
     @Mapping(target = "id", ignore = true)

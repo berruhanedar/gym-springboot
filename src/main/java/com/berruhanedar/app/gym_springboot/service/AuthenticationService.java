@@ -4,8 +4,6 @@ import com.berruhanedar.app.gym_springboot.dao.TraineeDao;
 import com.berruhanedar.app.gym_springboot.dao.TrainerDao;
 import com.berruhanedar.app.gym_springboot.dto.ChangePasswordRequestDTO;
 import com.berruhanedar.app.gym_springboot.dto.CredentialsDTO;
-import com.berruhanedar.app.gym_springboot.entity.Trainee;
-import com.berruhanedar.app.gym_springboot.entity.Trainer;
 import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -73,17 +71,10 @@ public class AuthenticationService {
                 );
     }
 
-    private void updatePassword(
-            String currentPassword,
-            String oldPassword,
-            String newPassword,
-            Consumer<String> passwordSetter,
-            Runnable saveAction
-    ) {
+    private void updatePassword(String currentPassword, String oldPassword, String newPassword, Consumer<String> passwordSetter, Runnable saveAction) {
         if (!currentPassword.equals(oldPassword)) {
             throw new AuthenticationException("Invalid username or password.");
         }
-
         passwordSetter.accept(newPassword);
         saveAction.run();
     }

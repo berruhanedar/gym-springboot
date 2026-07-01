@@ -2,6 +2,7 @@ package com.berruhanedar.app.gym_springboot.service;
 
 import com.berruhanedar.app.gym_springboot.dao.TraineeDao;
 import com.berruhanedar.app.gym_springboot.dao.TrainerDao;
+import com.berruhanedar.app.gym_springboot.dto.ChangePasswordRequestDTO;
 import com.berruhanedar.app.gym_springboot.dto.CredentialsDTO;
 import com.berruhanedar.app.gym_springboot.entity.Trainee;
 import com.berruhanedar.app.gym_springboot.entity.Trainer;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -24,14 +26,16 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    void shouldRejectTraineeWhenPasswordDoesNotMatchOrUserMissing() {
+    void shouldRejectWhenTraineePasswordDoesNotMatchOrUserMissing() {
         AuthenticationService service = serviceWith(trainee("trainee.user", "pass"), null);
 
         assertThatThrownBy(() -> service.authenticate(credentials("trainee.user", "wrong")))
                 .isInstanceOf(AuthenticationException.class)
-                .hasMessageContaining("Invalid trainee username or password");
+                .hasMessageContaining("Invalid username or password");
+
         assertThatThrownBy(() -> service.authenticate(credentials("missing", "pass")))
-                .isInstanceOf(AuthenticationException.class);
+                .isInstanceOf(AuthenticationException.class)
+                .hasMessageContaining("Invalid username or password");
     }
 
     @Test
@@ -43,14 +47,59 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    void shouldRejectTrainerWhenPasswordDoesNotMatchOrUserMissing() {
+    void shouldRejectWhenTrainerPasswordDoesNotMatchOrUserMissing() {
         AuthenticationService service = serviceWith(null, trainer("trainer.user", "pass"));
 
         assertThatThrownBy(() -> service.authenticate(credentials("trainer.user", "wrong")))
                 .isInstanceOf(AuthenticationException.class)
-                .hasMessageContaining("Invalid trainer username or password");
+                .hasMessageContaining("Invalid username or password");
+
         assertThatThrownBy(() -> service.authenticate(credentials("missing", "pass")))
-                .isInstanceOf(AuthenticationException.class);
+                .isInstanceOf(AuthenticationException.class)
+                .hasMessageContaining("Invalid username or password");
+    }
+
+    @Test
+    void shouldChangeTraineePasswordWhenOldPasswordMatches() {
+        Trainee trainee = trainee("trainee.user", "oldPass");
+        AuthenticationService service = serviceWith(trainee, null);
+
+        service.changePassword(changePasswordRequest("trainee.user", "oldPass", "newPass"));
+
+        assertThat(trainee.getPassword()).isEqualTo("newPass");
+    }
+
+    @Test
+    void shouldChangeTrainerPasswordWhenOldPasswordMatches() {
+        Trainer trainer = trainer("trainer.user", "oldPass");
+        AuthenticationService service = serviceWith(null, trainer);
+
+        service.changePassword(changePasswordRequest("trainer.user", "oldPass", "newPass"));
+
+        assertThat(trainer.getPassword()).isEqualTo("newPass");
+    }
+
+    @Test
+    void shouldRejectPasswordChangeWhenOldPasswordDoesNotMatch() {
+        Trainee trainee = trainee("trainee.user", "oldPass");
+        AuthenticationService service = serviceWith(trainee, null);
+
+        assertThatThrownBy(() ->
+                service.changePassword(changePasswordRequest("trainee.user", "wrong", "newPass")))
+                .isInstanceOf(AuthenticationException.class)
+                .hasMessageContaining("Invalid username or password");
+
+        assertThat(trainee.getPassword()).isEqualTo("oldPass");
+    }
+
+    @Test
+    void shouldRejectPasswordChangeWhenUserDoesNotExist() {
+        AuthenticationService service = serviceWith(null, null);
+
+        assertThatThrownBy(() ->
+                service.changePassword(changePasswordRequest("missing", "oldPass", "newPass")))
+                .isInstanceOf(AuthenticationException.class)
+                .hasMessageContaining("Invalid username or password");
     }
 
     private AuthenticationService serviceWith(Trainee trainee, Trainer trainer) {
@@ -65,6 +114,18 @@ class AuthenticationServiceTest {
         credentials.setUsername(username);
         credentials.setPassword(password);
         return credentials;
+    }
+
+    private ChangePasswordRequestDTO changePasswordRequest(
+            String username,
+            String oldPassword,
+            String newPassword) {
+
+        ChangePasswordRequestDTO request = new ChangePasswordRequestDTO();
+        request.setUsername(username);
+        request.setOldPassword(oldPassword);
+        request.setNewPassword(newPassword);
+        return request;
     }
 
     private Trainee trainee(String username, String password) {
@@ -90,7 +151,13 @@ class AuthenticationServiceTest {
 
         @Override
         public Optional<Trainee> findByUsername(String username) {
-            return Optional.ofNullable(trainee).filter(t -> t.getUsername().equals(username));
+            return Optional.ofNullable(trainee)
+                    .filter(t -> t.getUsername().equals(username));
+        }
+
+        @Override
+        public Trainee update(Trainee trainee) {
+            return trainee;
         }
     }
 
@@ -103,7 +170,13 @@ class AuthenticationServiceTest {
 
         @Override
         public Optional<Trainer> findByUsername(String username) {
-            return Optional.ofNullable(trainer).filter(t -> t.getUsername().equals(username));
+            return Optional.ofNullable(trainer)
+                    .filter(t -> t.getUsername().equals(username));
+        }
+
+        @Override
+        public Trainer update(Trainer trainer) {
+            return trainer;
         }
     }
 }
