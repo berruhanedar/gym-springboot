@@ -6,11 +6,11 @@ import java.time.LocalDate;
 
 @Data
 public class TrainingResponseDTO {
-    private Long id;
-    private Long traineeId;
-    private Long trainerId;
+
     private String trainingName;
-    private String trainingTypeName;
     private LocalDate trainingDate;
+    private String trainingTypeName;
     private Integer trainingDuration;
+    private String trainerName;
+    private String traineeName;
 }

@@ -99,23 +99,16 @@ public class TrainingService {
 
     @Transactional(readOnly = true)
     public List<TrainingResponseDTO> getTraineeTrainings(
-            CredentialsDTO traineeCredentials,
-            String traineeUsername,
-            LocalDate fromDate,
-            LocalDate toDate,
-            String trainerName,
-            String trainingType
-    ) {
-        authenticationService.authenticate(traineeCredentials);
-
-        log.debug("Getting trainings for trainee={}", traineeUsername);
-
+            CredentialsDTO credentials,
+            String username,
+            TraineeTrainingsFilterDTO filter) {
+        authenticationService.authenticate(credentials);
         return trainingDao.findByTraineeUsernameAndCriteria(
-                        traineeUsername,
-                        fromDate,
-                        toDate,
-                        trainerName,
-                        trainingType)
+                        username,
+                        filter.getPeriodFrom(),
+                        filter.getPeriodTo(),
+                        filter.getTrainerName(),
+                        filter.getTrainingType())
                 .stream()
                 .map(trainingMapper::toDTO)
                 .toList();
