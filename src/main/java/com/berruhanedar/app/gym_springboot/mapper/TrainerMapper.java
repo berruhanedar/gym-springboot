@@ -1,9 +1,7 @@
 package com.berruhanedar.app.gym_springboot.mapper;
 
-import com.berruhanedar.app.gym_springboot.dto.NewTrainerRequestDTO;
-import com.berruhanedar.app.gym_springboot.dto.RegistrationResponseDTO;
-import com.berruhanedar.app.gym_springboot.dto.TrainerResponseDTO;
-import com.berruhanedar.app.gym_springboot.dto.UpdateTrainerRequestDTO;
+import com.berruhanedar.app.gym_springboot.dto.*;
+import com.berruhanedar.app.gym_springboot.entity.Trainee;
 import com.berruhanedar.app.gym_springboot.entity.Trainer;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -12,10 +10,12 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface TrainerMapper {
 
-    @Mapping(source = "specialization.trainingTypeName", target = "specializationName")
+    RegistrationResponseDTO toRegistrationResponseDTO(Trainer trainer);
+
+    @Mapping(source = "trainees", target = "trainees")
     TrainerResponseDTO toDTO(Trainer trainer);
 
-    RegistrationResponseDTO toRegistrationResponseDTO(Trainer trainer);
+    TraineeSummaryDTO toTraineeSummaryDTO(Trainee trainee);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "username", ignore = true)
