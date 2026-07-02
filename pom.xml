@@ -19,6 +19,7 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <junit.version>5.13.3</junit.version>
         <assertj.version>3.27.7</assertj.version>
+        <mockito.version>5.18.0</mockito.version>
         <swagger.annotations.version>1.6.16</swagger.annotations.version>
         <jackson.version>2.21.1</jackson.version>
         <servlet.version>6.1.0</servlet.version>
@@ -171,6 +172,28 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Mockito -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest</artifactId>
+            <version>3.0</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -183,6 +206,8 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <parameters>true</parameters>
+
                     <annotationProcessorPaths>
 
                         <path>

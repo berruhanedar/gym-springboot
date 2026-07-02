@@ -69,7 +69,7 @@ public class GymFacade {
         trainerService.changeActivationStatus(credentials, dto);
     }
 
-    public List<TrainerResponseDTO> getTrainersNotAssignedToTrainee(CredentialsDTO credentials, String traineeUsername) {
+    public List<TrainerSummaryDTO> getTrainersNotAssignedToTrainee(CredentialsDTO credentials, String traineeUsername) {
         return trainerService.getTrainersNotAssignedToTrainee(credentials, traineeUsername);
     }
 
@@ -77,15 +77,15 @@ public class GymFacade {
         trainingService.createTraining(trainerCredentials, dto);
     }
 
-    public List<TrainingResponseDTO> getTraineeTrainings(CredentialsDTO traineeCredentials, String traineeUsername, TraineeTrainingsFilterDTO filter) {
+    public List<TraineeTrainingResponseDTO> getTraineeTrainings(CredentialsDTO traineeCredentials, String traineeUsername, TraineeTrainingsFilterDTO filter) {
         return trainingService.getTraineeTrainings(traineeCredentials, traineeUsername, filter);
     }
 
-    public List<TrainingResponseDTO> getTrainerTrainings(CredentialsDTO trainerCredentials, String trainerUsername, TrainerTrainingsFilterDTO filter) {
+    public List<TrainerTrainingResponseDTO> getTrainerTrainings(CredentialsDTO trainerCredentials, String trainerUsername, TrainerTrainingsFilterDTO filter) {
         return trainingService.getTrainerTrainings(trainerCredentials, trainerUsername, filter);
     }
 
-    public List<TrainingTypeResponseDTO> getTrainingTypes() {
-        return trainingService.getTrainingTypes();
+    public List<TrainingTypeResponseDTO> getTrainingTypes(CredentialsDTO credentials) {
+        return trainingService.getTrainingTypes(credentials);
     }
 }

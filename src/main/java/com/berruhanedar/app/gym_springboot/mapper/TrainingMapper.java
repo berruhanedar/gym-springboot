@@ -18,4 +18,12 @@ public interface TrainingMapper {
     @Mapping(target = "trainer", ignore = true)
     @Mapping(target = "trainingType", ignore = true)
     Training toEntity(NewTrainingRequestDTO dto);
+
+    @Mapping(source = "trainingType.trainingTypeName", target = "trainingTypeName")
+    @Mapping(expression = "java(training.getTrainer().getFirstName() + \" \" + training.getTrainer().getLastName())", target = "trainerName")
+    TraineeTrainingResponseDTO toTraineeTrainingResponseDTO(Training training);
+
+    @Mapping(source = "trainingType.trainingTypeName", target = "trainingTypeName")
+    @Mapping(expression = "java(training.getTrainee().getFirstName() + \" \" + training.getTrainee().getLastName())", target = "traineeName")
+    TrainerTrainingResponseDTO toTrainerTrainingResponseDTO(Training training);
 }

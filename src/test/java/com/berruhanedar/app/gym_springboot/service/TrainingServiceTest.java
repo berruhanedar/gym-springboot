@@ -52,7 +52,7 @@ class TrainingServiceTest {
                 )
         );
 
-        List<TrainingResponseDTO> trainings = gymFacade.getTraineeTrainings(
+        List<TraineeTrainingResponseDTO> trainings = gymFacade.getTraineeTrainings(
                 credentials(trainee),
                 trainee.getUsername(),
                 traineeFilter(null, null, null, null)
@@ -92,7 +92,7 @@ class TrainingServiceTest {
                         LocalDate.now().plusDays(10), 40)
         );
 
-        List<TrainingResponseDTO> result = gymFacade.getTraineeTrainings(
+        List<TraineeTrainingResponseDTO> result = gymFacade.getTraineeTrainings(
                 credentials(trainee),
                 trainee.getUsername(),
                 traineeFilter(
@@ -133,7 +133,7 @@ class TrainingServiceTest {
                         LocalDate.now().plusDays(20), 35)
         );
 
-        List<TrainingResponseDTO> result = gymFacade.getTrainerTrainings(
+        List<TrainerTrainingResponseDTO> result = gymFacade.getTrainerTrainings(
                 credentials(trainer),
                 trainer.getUsername(),
                 trainerFilter(
@@ -167,39 +167,53 @@ class TrainingServiceTest {
                         LocalDate.now().plusDays(2), 25)
         );
 
-        List<TrainingResponseDTO> result = gymFacade.getTraineeTrainings(
+        List<TraineeTrainingResponseDTO> result = gymFacade.getTraineeTrainings(
                 credentials(trainee),
                 trainee.getUsername(),
                 traineeFilter(null, null, " ", "")
         );
 
         assertThat(result)
-                .extracting(TrainingResponseDTO::getTrainingName)
+                .extracting(TraineeTrainingResponseDTO::getTrainingName)
                 .containsExactlyInAnyOrder("Stretch One", "Stretch Two");
     }
 
     @Test
-    void shouldThrowExceptionWhenTrainingReferencesAreMissing() {
+    void shouldThrowExceptionWhenTraineeDoesNotExist() {
+        TrainingType yoga = ensureTrainingType("Yoga");
+        RegistrationResponseDTO trainer = createTrainer("Valid", "Trainer", yoga);
+
+        assertThatThrownBy(() ->
+                gymFacade.createTraining(
+                        credentials(trainer),
+                        newTraining(
+                                "missing.trainee",
+                                trainer.getUsername(),
+                                "Training",
+                                LocalDate.now().plusDays(1),
+                                60)))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("Trainee not found");
+    }
+
+    @Test
+    void shouldThrowExceptionWhenTrainerDoesNotExist() {
         TrainingType yoga = ensureTrainingType("Yoga");
 
         RegistrationResponseDTO trainee = createTrainee("Lily", "Scott");
         RegistrationResponseDTO trainer = createTrainer("Valid", "Trainer", yoga);
 
-        assertThatThrownBy(() -> gymFacade.createTraining(
-                credentials(trainer),
-                newTraining("missing.trainee", trainer.getUsername(), "Invalid Trainee",
-                        LocalDate.now().plusDays(1), 60)
-        ))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("Trainee not found");
-
-        assertThatThrownBy(() -> gymFacade.createTraining(
-                credentials(trainer),
-                newTraining(trainee.getUsername(), "missing.trainer", "Invalid Trainer",
-                        LocalDate.now().plusDays(1), 60)
-        ))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("Trainer not found");
+        assertThatThrownBy(() ->
+                gymFacade.createTraining(
+                        credentials(trainer),
+                        newTraining(
+                                trainee.getUsername(),
+                                "missing.trainer",
+                                "Training",
+                                LocalDate.now().plusDays(1),
+                                60)))
+                .isInstanceOf(AuthenticationException.class)
+                .hasMessageContaining("Trainer is not authorized");
     }
 
     @Test
@@ -239,7 +253,11 @@ class TrainingServiceTest {
         ensureTrainingType("Yoga");
         ensureTrainingType("Cardio");
 
-        List<TrainingTypeResponseDTO> result = gymFacade.getTrainingTypes();
+        RegistrationResponseDTO trainer =
+                createTrainer("Type", "Viewer", ensureTrainingType("Pilates"));
+
+        List<TrainingTypeResponseDTO> result =
+                gymFacade.getTrainingTypes(credentials(trainer));
 
         assertThat(result)
                 .extracting(TrainingTypeResponseDTO::getTrainingTypeName)

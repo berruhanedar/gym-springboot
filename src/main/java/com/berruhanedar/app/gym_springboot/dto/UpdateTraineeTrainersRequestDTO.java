@@ -1,5 +1,6 @@
 package com.berruhanedar.app.gym_springboot.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
@@ -13,5 +14,5 @@ public class UpdateTraineeTrainersRequestDTO {
     private String traineeUsername;
 
     @NotEmpty
-    private List<TrainerUsernameDTO> trainers;
+    private List<@Valid TrainerUsernameDTO> trainers;
 }

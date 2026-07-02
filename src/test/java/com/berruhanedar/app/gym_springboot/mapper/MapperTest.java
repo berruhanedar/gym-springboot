@@ -14,6 +14,7 @@ class MapperTest {
     private final TraineeMapper traineeMapper = Mappers.getMapper(TraineeMapper.class);
     private final TrainerMapper trainerMapper = Mappers.getMapper(TrainerMapper.class);
     private final TrainingMapper trainingMapper = Mappers.getMapper(TrainingMapper.class);
+    private final TrainingTypeMapper trainingTypeMapper = Mappers.getMapper(TrainingTypeMapper.class);
 
     @Test
     void shouldMapTraineeCreateUpdateAndResponseDtos() {
@@ -125,6 +126,16 @@ class MapperTest {
         assertThat(trainerMapper.toEntity(null)).isNull();
         assertThat(trainingMapper.toDTO(null)).isNull();
         assertThat(trainingMapper.toEntity(null)).isNull();
+    }
+
+    @Test
+    void shouldMapTrainingTypeToResponseDto() {
+        TrainingType yoga = trainingType(1L, "Yoga");
+
+        TrainingTypeResponseDTO response = trainingTypeMapper.toDTO(yoga);
+
+        assertThat(response.getId()).isEqualTo(1L);
+        assertThat(response.getTrainingTypeName()).isEqualTo("Yoga");
     }
 
     private TrainingType trainingType(Long id, String name) {

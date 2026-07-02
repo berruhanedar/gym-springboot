@@ -8,8 +8,10 @@ import com.berruhanedar.app.gym_springboot.dto.*;
 import com.berruhanedar.app.gym_springboot.entity.Trainee;
 import com.berruhanedar.app.gym_springboot.entity.Trainer;
 import com.berruhanedar.app.gym_springboot.entity.Training;
+import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TrainingMapper;
+import com.berruhanedar.app.gym_springboot.mapper.TrainingTypeMapper;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,10 @@ public class TrainingService {
     private TrainingTypeDao trainingTypeDao;
     private TrainingMapper trainingMapper;
     private AuthenticationService authenticationService;
+    private TrainingTypeMapper trainingTypeMapper;
+
+    @Autowired
+    public void setTrainingTypeMapper(TrainingTypeMapper trainingTypeMapper) { this.trainingTypeMapper = trainingTypeMapper; }
 
     @Autowired
     public void setTrainingDao(TrainingDao trainingDao) {
@@ -60,8 +66,9 @@ public class TrainingService {
     }
 
     @Transactional(readOnly = true)
-    public List<TrainingResponseDTO> getTraineeTrainings(CredentialsDTO credentials, String username, TraineeTrainingsFilterDTO filter) {
+    public List<TraineeTrainingResponseDTO> getTraineeTrainings(CredentialsDTO credentials, String username, TraineeTrainingsFilterDTO filter) {
         authenticationService.authenticate(credentials);
+        validateTraineeAccess(credentials, username);
         return trainingDao.findByTraineeUsernameAndCriteria(
                         username,
                         filter.getPeriodFrom(),
@@ -69,26 +76,28 @@ public class TrainingService {
                         filter.getTrainerName(),
                         filter.getTrainingType())
                 .stream()
-                .map(trainingMapper::toDTO)
+                .map(trainingMapper::toTraineeTrainingResponseDTO)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<TrainingResponseDTO> getTrainerTrainings(CredentialsDTO credentials, String username, TrainerTrainingsFilterDTO filter) {
+    public List<TrainerTrainingResponseDTO> getTrainerTrainings(CredentialsDTO credentials, String username, TrainerTrainingsFilterDTO filter) {
         authenticationService.authenticate(credentials);
+        validateTrainerAccess(credentials, username);
         return trainingDao.findByTrainerUsernameAndCriteria(
                         username,
                         filter.getPeriodFrom(),
                         filter.getPeriodTo(),
                         filter.getTraineeName())
                 .stream()
-                .map(trainingMapper::toDTO)
+                .map(trainingMapper::toTrainerTrainingResponseDTO)
                 .toList();
     }
 
     @Transactional
-    public void createTraining(CredentialsDTO trainerCredentials, @Valid NewTrainingRequestDTO dto) {
+    public void createTraining(CredentialsDTO trainerCredentials, NewTrainingRequestDTO dto) {
         authenticationService.authenticate(trainerCredentials);
+        validateTrainerAccess(trainerCredentials, dto.getTrainerUsername());
         log.info("Creating training. traineeUsername={}, trainerUsername={}", dto.getTraineeUsername(), dto.getTrainerUsername());
         Trainee trainee = findTraineeByUsername(dto.getTraineeUsername());
         Trainer trainer = findTrainerByUsername(dto.getTrainerUsername());
@@ -101,15 +110,12 @@ public class TrainingService {
     }
 
     @Transactional(readOnly = true)
-    public List<TrainingTypeResponseDTO> getTrainingTypes() {
+    public List<TrainingTypeResponseDTO> getTrainingTypes(CredentialsDTO credentials) {
+        authenticationService.authenticate(credentials);
+
         return trainingTypeDao.findAll()
                 .stream()
-                .map(trainingType -> {
-                    TrainingTypeResponseDTO dto = new TrainingTypeResponseDTO();
-                    dto.setId(trainingType.getId());
-                    dto.setTrainingTypeName(trainingType.getTrainingTypeName());
-                    return dto;
-                })
+                .map(trainingTypeMapper::toDTO)
                 .toList();
     }
 
@@ -119,5 +125,19 @@ public class TrainingService {
 
     private Trainer findTrainerByUsername(String username) {
         return trainerDao.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + username));
+    }
+
+    private void validateTraineeAccess(CredentialsDTO credentials, String username) {
+        if (!credentials.getUsername().equals(username)) {
+            throw new AuthenticationException(
+                    "Trainee is not authorized to access these trainings.");
+        }
+    }
+
+    private void validateTrainerAccess(CredentialsDTO credentials, String username) {
+        if (!credentials.getUsername().equals(username)) {
+            throw new AuthenticationException(
+                    "Trainer is not authorized to access these trainings.");
+        }
     }
 }

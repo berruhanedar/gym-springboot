@@ -172,16 +172,15 @@ class TrainerServiceTest {
 
         gymFacade.updateTraineeTrainers(credentials(trainee.getUsername(), trainee.getPassword()), update);
 
-        List<TrainerResponseDTO> result = gymFacade.getTrainersNotAssignedToTrainee(
+        List<TrainerSummaryDTO> result = gymFacade.getTrainersNotAssignedToTrainee(
                 credentials(requester.getUsername(), requester.getPassword()),
                 trainee.getUsername()
         );
 
         assertThat(result)
-                .extracting(TrainerResponseDTO::getUsername)
+                .extracting(TrainerSummaryDTO::getUsername)
                 .contains(available.getUsername(), requester.getUsername())
-                .doesNotContain(assigned.getUsername());
-    }
+                .doesNotContain(assigned.getUsername());}
 
     @Test
     void shouldThrowExpectedExceptionsForMissingTrainerAndWrongCredentials() {

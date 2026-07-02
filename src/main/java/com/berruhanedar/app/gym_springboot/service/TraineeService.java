@@ -54,7 +54,7 @@ public class TraineeService {
     }
 
     @Transactional
-    public RegistrationResponseDTO createTrainee(@Valid NewTraineeRequestDTO dto) {
+    public RegistrationResponseDTO createTrainee(NewTraineeRequestDTO dto) {
         log.info("Creating trainee profile for {} {}", dto.getFirstName(), dto.getLastName());
         Trainee trainee = traineeMapper.toEntity(dto);
         trainee.setUsername(credentialGenerator.generateUsername(dto.getFirstName(), dto.getLastName()));
@@ -75,7 +75,7 @@ public class TraineeService {
     }
 
     @Transactional
-    public TraineeResponseDTO updateTrainee(CredentialsDTO credentials, @Valid UpdateTraineeRequestDTO dto) {
+    public TraineeResponseDTO updateTrainee(CredentialsDTO credentials, UpdateTraineeRequestDTO dto) {
         authenticationService.authenticate(credentials);
         log.info("Updating trainee profile. username={}", dto.getUsername());
         Trainee trainee = findTraineeByUsername(dto.getUsername());
@@ -87,7 +87,7 @@ public class TraineeService {
     }
 
     @Transactional
-    public List<TrainerSummaryDTO> updateTraineeTrainers(CredentialsDTO credentials, @Valid UpdateTraineeTrainersRequestDTO dto) {
+    public List<TrainerSummaryDTO> updateTraineeTrainers(CredentialsDTO credentials, UpdateTraineeTrainersRequestDTO dto) {
         authenticationService.authenticate(credentials);
         log.info("Updating trainee trainers list. username={}", dto.getTraineeUsername());
         Trainee trainee = findTraineeByUsername(dto.getTraineeUsername());
@@ -105,7 +105,7 @@ public class TraineeService {
     }
 
     @Transactional
-    public void changeTraineeActivationStatus(CredentialsDTO credentials, @Valid UpdateActivationStatusDTO dto) {
+    public void changeTraineeActivationStatus(CredentialsDTO credentials, UpdateActivationStatusDTO dto) {
         authenticationService.authenticate(credentials);
         log.info("Updating trainee activation status. username={}, isActive={}", dto.getUsername(), dto.getIsActive());
         Trainee trainee = findTraineeByUsername(dto.getUsername());

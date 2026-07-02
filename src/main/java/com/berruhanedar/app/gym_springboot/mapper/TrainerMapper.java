@@ -16,7 +16,8 @@ public interface TrainerMapper {
     @Mapping(source = "trainees", target = "trainees")
     TrainerResponseDTO toDTO(Trainer trainer);
 
-    TraineeSummaryDTO toTraineeSummaryDTO(Trainee trainee);
+    @Mapping(source = "specialization.trainingTypeName", target = "specializationName")
+    TrainerSummaryDTO toTrainerSummaryDTO(Trainer trainer);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "username", ignore = true)

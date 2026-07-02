@@ -28,49 +28,49 @@ public class TraineeController {
 
     @ApiOperation(value = "Register trainee")
     @PostMapping("/trainees")
-    public ResponseEntity<RegistrationResponseDTO> registerTrainee(@Valid @RequestBody NewTraineeRequestDTO newTraineeRequestDTO) {
-        RegistrationResponseDTO response = traineeService.createTrainee(newTraineeRequestDTO);
+    public ResponseEntity<RegistrationResponseDTO> registerTrainee(@Valid @RequestBody NewTraineeRequestDTO request) {
+        RegistrationResponseDTO response = traineeService.createTrainee(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @ApiOperation(value = "Get trainee profile")
     @GetMapping("/trainees/{username}")
-    public ResponseEntity<TraineeResponseDTO> getTraineeProfile(@Valid CredentialsDTO credentials, @PathVariable @NotBlank String username) {
+    public ResponseEntity<TraineeResponseDTO> getTraineeProfile(@Valid @ModelAttribute CredentialsDTO credentials, @PathVariable @NotBlank String username) {
         TraineeResponseDTO response = traineeService.getTraineeByUsername(credentials, username);
         return ResponseEntity.ok(response);
     }
 
     @ApiOperation(value = "Update trainee profile")
     @PutMapping("/trainees")
-    public ResponseEntity<TraineeResponseDTO> updateTraineeProfile(@Valid CredentialsDTO credentials, @Valid @RequestBody UpdateTraineeRequestDTO request) {
+    public ResponseEntity<TraineeResponseDTO> updateTraineeProfile(@Valid @ModelAttribute CredentialsDTO credentials, @Valid @RequestBody UpdateTraineeRequestDTO request) {
         TraineeResponseDTO response = traineeService.updateTrainee(credentials, request);
         return ResponseEntity.ok(response);
     }
 
     @ApiOperation(value = "Delete trainee profile")
     @DeleteMapping("/trainees/{username}")
-    public ResponseEntity<Void> deleteTraineeProfile(@Valid CredentialsDTO credentials, @PathVariable @NotBlank String username) {
+    public ResponseEntity<Void> deleteTraineeProfile(@Valid @ModelAttribute CredentialsDTO credentials, @PathVariable @NotBlank String username) {
         traineeService.deleteTraineeByUsername(credentials, username);
         return ResponseEntity.ok().build();
     }
 
     @ApiOperation(value = "Get active trainers not assigned to trainee")
     @GetMapping("/trainees/{username}/unassigned-trainers")
-    public ResponseEntity<List<TrainerResponseDTO>> getNotAssignedActiveTrainers(@Valid CredentialsDTO credentials, @PathVariable @NotBlank String username) {
-        List<TrainerResponseDTO> response = trainerService.getTrainersNotAssignedToTrainee(credentials, username);
+    public ResponseEntity<List<TrainerSummaryDTO>> getNotAssignedActiveTrainers(@Valid @ModelAttribute CredentialsDTO credentials, @PathVariable @NotBlank String username) {
+        List<TrainerSummaryDTO> response = trainerService.getTrainersNotAssignedToTrainee(credentials, username);
         return ResponseEntity.ok(response);
     }
 
     @ApiOperation(value = "Update trainee trainer list")
     @PutMapping("/trainees/trainers")
-    public ResponseEntity<List<TrainerSummaryDTO>> updateTraineeTrainers(@Valid CredentialsDTO credentials, @Valid @RequestBody UpdateTraineeTrainersRequestDTO request) {
+    public ResponseEntity<List<TrainerSummaryDTO>> updateTraineeTrainers(@Valid @ModelAttribute CredentialsDTO credentials, @Valid @RequestBody UpdateTraineeTrainersRequestDTO request) {
         List<TrainerSummaryDTO> response = traineeService.updateTraineeTrainers(credentials, request);
         return ResponseEntity.ok(response);
     }
 
     @ApiOperation(value = "Activate or deactivate trainee")
     @PatchMapping("/trainees/activation")
-    public ResponseEntity<Void> changeTraineeActivationStatus(@Valid CredentialsDTO credentials, @Valid @RequestBody UpdateActivationStatusDTO request) {
+    public ResponseEntity<Void> changeTraineeActivationStatus(@Valid @ModelAttribute CredentialsDTO credentials, @Valid @RequestBody UpdateActivationStatusDTO request) {
         traineeService.changeTraineeActivationStatus(credentials, request);
         return ResponseEntity.ok().build();
     }
