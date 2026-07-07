@@ -1,5 +1,6 @@
 package com.berruhanedar.app.gym_springboot.security;
 
+import com.berruhanedar.app.gym_springboot.service.AuthenticationService;
 import com.berruhanedar.app.gym_springboot.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -18,9 +19,12 @@ import java.util.Collections;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final AuthenticationService authenticationService;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService,
+                                   AuthenticationService authenticationService) {
         this.jwtService = jwtService;
+        this.authenticationService = authenticationService;
     }
 
     @Override
@@ -39,6 +43,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String token = header.substring(7);
             String username = jwtService.extractUsername(token);
+
+            if (!authenticationService.userExists(username)) {
+                SecurityContextHolder.clearContext();
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());

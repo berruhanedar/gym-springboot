@@ -73,7 +73,9 @@ public class TrainerService {
         log.info("Updating trainer profile. username={}", dto.getUsername());
         Trainer trainer = findTrainerByUsername(dto.getUsername());
         validateTrainerOwnsProfile(trainer);
+        TrainingType specialization = findTrainingTypeByName(dto.getSpecializationName());
         trainerMapper.updateFromDTO(dto, trainer);
+        trainer.setSpecialization(specialization);
         Trainer updated = trainerDao.update(trainer);
         log.info("Trainer profile updated successfully. username={}", updated.getUsername());
         return trainerMapper.toDTO(updated);

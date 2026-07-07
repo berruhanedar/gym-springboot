@@ -90,4 +90,18 @@ public class AuthenticationService {
         passwordSetter.accept(newPassword);
         saveAction.run();
     }
+
+    public boolean isUserActive(String username) {
+        return traineeDao.findByUsername(username)
+                .map(trainee -> Boolean.TRUE.equals(trainee.getIsActive()))
+                .or(() -> trainerDao.findByUsername(username)
+                        .map(trainer -> Boolean.TRUE.equals(trainer.getIsActive())))
+                .orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean userExists(String username) {
+        return traineeDao.findByUsername(username).isPresent()
+                || trainerDao.findByUsername(username).isPresent();
+    }
 }
