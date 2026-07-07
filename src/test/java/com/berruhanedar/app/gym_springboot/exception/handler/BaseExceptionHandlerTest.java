@@ -19,6 +19,7 @@ class BaseExceptionHandlerTest {
         ResponseEntity<IBaseException> response = handler.handleBaseException(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody()).isEqualTo(ex);
         assertThat(response.getBody().getMessage()).isEqualTo("Invalid credentials");
         assertThat(response.getBody().getCode()).isEqualTo("AuthenticationException");

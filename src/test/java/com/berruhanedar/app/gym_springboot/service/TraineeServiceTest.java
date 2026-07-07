@@ -9,9 +9,12 @@ import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.facade.GymFacade;
 import org.hibernate.SessionFactory;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -39,6 +42,11 @@ class TraineeServiceTest {
     @Autowired
     private SessionFactory sessionFactory;
 
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
     void shouldCreateTraineeWithGeneratedUsernamePasswordAndActiveStatus() {
         RegistrationResponseDTO response = createTrainee("  Oliver  ", "  Taylor  ", "London");
@@ -55,7 +63,8 @@ class TraineeServiceTest {
     @Test
     void shouldUpdateTraineeWithoutChangingUsernameOrPassword() {
         RegistrationResponseDTO saved = createTrainee("Emily", "Johnson", "Old Address");
-        CredentialsDTO credentials = credentials(saved.getUsername(), saved.getPassword());
+
+        authenticateAs(saved.getUsername());
 
         UpdateTraineeRequestDTO update = new UpdateTraineeRequestDTO();
         update.setUsername(saved.getUsername());
@@ -65,7 +74,7 @@ class TraineeServiceTest {
         update.setAddress("New York");
         update.setIsActive(false);
 
-        TraineeResponseDTO updated = gymFacade.updateTrainee(credentials, update);
+        TraineeResponseDTO updated = gymFacade.updateTrainee(update);
 
         assertThat(updated.getFirstName()).isEqualTo("Emma");
         assertThat(updated.getLastName()).isEqualTo("Stone");
@@ -78,11 +87,12 @@ class TraineeServiceTest {
     }
 
     @Test
-    void shouldGetTraineeByUsernameWhenCredentialsAreValid() {
+    void shouldGetTraineeByUsernameWhenAuthenticatedUserOwnsProfile() {
         RegistrationResponseDTO saved = createTrainee("Mia", "Clark", "Istanbul");
-        CredentialsDTO credentials = credentials(saved.getUsername(), saved.getPassword());
 
-        TraineeResponseDTO response = gymFacade.getTraineeByUsername(credentials, saved.getUsername());
+        authenticateAs(saved.getUsername());
+
+        TraineeResponseDTO response = gymFacade.getTraineeByUsername(saved.getUsername());
 
         assertThat(response.getUsername()).isEqualTo(saved.getUsername());
         assertThat(response.getFirstName()).isEqualTo("Mia");
@@ -101,30 +111,27 @@ class TraineeServiceTest {
 
         gymFacade.changePassword(request);
 
-        CredentialsDTO newCredentials = credentials(saved.getUsername(), "NewPass123");
-
-        assertThatCode(() -> gymFacade.getTraineeByUsername(newCredentials, saved.getUsername()))
+        assertThatCode(() -> gymFacade.authenticate(credentials(saved.getUsername(), "NewPass123")))
                 .doesNotThrowAnyException();
 
-        CredentialsDTO oldCredentials = credentials(saved.getUsername(), saved.getPassword());
-
-        assertThatThrownBy(() -> gymFacade.getTraineeByUsername(oldCredentials, saved.getUsername()))
+        assertThatThrownBy(() -> gymFacade.authenticate(credentials(saved.getUsername(), saved.getPassword())))
                 .isInstanceOf(AuthenticationException.class);
     }
 
     @Test
     void shouldUpdateTraineeActivationStatus() {
         RegistrationResponseDTO saved = createTrainee("Ava", "King", null);
-        CredentialsDTO credentials = credentials(saved.getUsername(), saved.getPassword());
+
+        authenticateAs(saved.getUsername());
 
         UpdateActivationStatusDTO deactivate = new UpdateActivationStatusDTO();
         deactivate.setUsername(saved.getUsername());
         deactivate.setIsActive(false);
 
-        gymFacade.changeTraineeActivationStatus(credentials, deactivate);
+        gymFacade.changeTraineeActivationStatus(deactivate);
 
         TraineeResponseDTO deactivated =
-                gymFacade.getTraineeByUsername(credentials, saved.getUsername());
+                gymFacade.getTraineeByUsername(saved.getUsername());
 
         assertThat(deactivated.getIsActive()).isFalse();
 
@@ -132,10 +139,10 @@ class TraineeServiceTest {
         activate.setUsername(saved.getUsername());
         activate.setIsActive(true);
 
-        gymFacade.changeTraineeActivationStatus(credentials, activate);
+        gymFacade.changeTraineeActivationStatus(activate);
 
         TraineeResponseDTO activated =
-                gymFacade.getTraineeByUsername(credentials, saved.getUsername());
+                gymFacade.getTraineeByUsername(saved.getUsername());
 
         assertThat(activated.getIsActive()).isTrue();
     }
@@ -143,12 +150,13 @@ class TraineeServiceTest {
     @Test
     void shouldDeleteTraineeByUsername() {
         RegistrationResponseDTO saved = createTrainee("Delete", "ByUsername", null);
-        CredentialsDTO credentials = credentials(saved.getUsername(), saved.getPassword());
 
-        gymFacade.deleteTraineeByUsername(credentials, saved.getUsername());
+        authenticateAs(saved.getUsername());
 
-        assertThatThrownBy(() -> gymFacade.getTraineeByUsername(credentials, saved.getUsername()))
-                .isInstanceOf(AuthenticationException.class);
+        gymFacade.deleteTraineeByUsername(saved.getUsername());
+
+        assertThatThrownBy(() -> gymFacade.getTraineeByUsername(saved.getUsername()))
+                .isInstanceOf(EntityNotFoundException.class);
     }
 
     @Test
@@ -158,6 +166,8 @@ class TraineeServiceTest {
         RegistrationResponseDTO trainee = createTrainee("Trainer", "Owner", null);
         RegistrationResponseDTO firstTrainer = createTrainer("Assigned", "One", yoga);
         RegistrationResponseDTO secondTrainer = createTrainer("Assigned", "Two", yoga);
+
+        authenticateAs(trainee.getUsername());
 
         TrainerUsernameDTO first = new TrainerUsernameDTO();
         first.setUsername(firstTrainer.getUsername());
@@ -169,8 +179,7 @@ class TraineeServiceTest {
         request.setTraineeUsername(trainee.getUsername());
         request.setTrainers(List.of(first, second));
 
-        List<TrainerSummaryDTO> updated =
-                gymFacade.updateTraineeTrainers(credentials(trainee.getUsername(), trainee.getPassword()), request);
+        List<TrainerSummaryDTO> updated = gymFacade.updateTraineeTrainers(request);
 
         assertThat(updated).hasSize(2);
         assertThat(countAssignedTrainers(trainee.getUsername())).isEqualTo(2);
@@ -180,6 +189,8 @@ class TraineeServiceTest {
     void shouldThrowExceptionWhenUpdatingTraineeTrainersWithMissingTrainer() {
         RegistrationResponseDTO trainee = createTrainee("Missing", "Trainer", null);
 
+        authenticateAs(trainee.getUsername());
+
         TrainerUsernameDTO missingTrainer = new TrainerUsernameDTO();
         missingTrainer.setUsername("missing.trainer");
 
@@ -187,24 +198,23 @@ class TraineeServiceTest {
         request.setTraineeUsername(trainee.getUsername());
         request.setTrainers(List.of(missingTrainer));
 
-        assertThatThrownBy(() ->
-                gymFacade.updateTraineeTrainers(
-                        credentials(trainee.getUsername(), trainee.getPassword()),
-                        request))
+        assertThatThrownBy(() -> gymFacade.updateTraineeTrainers(request))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("Trainer not found");
     }
 
     @Test
-    void shouldThrowExpectedExceptionsForMissingTraineeAndWrongCredentials() {
+    void shouldThrowExpectedExceptionsForMissingTraineeAndUnauthorizedUser() {
         RegistrationResponseDTO saved = createTrainee("Wrong", "Password", null);
-        CredentialsDTO validCredentials = credentials(saved.getUsername(), saved.getPassword());
-        CredentialsDTO wrongCredentials = credentials(saved.getUsername(), "bad-password");
 
-        assertThatThrownBy(() -> gymFacade.getTraineeByUsername(wrongCredentials, saved.getUsername()))
+        authenticateAs("another.user");
+
+        assertThatThrownBy(() -> gymFacade.getTraineeByUsername(saved.getUsername()))
                 .isInstanceOf(AuthenticationException.class);
 
-        assertThatThrownBy(() -> gymFacade.getTraineeByUsername(validCredentials, "missing.username"))
+        authenticateAs(saved.getUsername());
+
+        assertThatThrownBy(() -> gymFacade.getTraineeByUsername("missing.username"))
                 .isInstanceOf(EntityNotFoundException.class);
 
         UpdateTraineeRequestDTO update = new UpdateTraineeRequestDTO();
@@ -215,10 +225,10 @@ class TraineeServiceTest {
         update.setAddress("Nowhere");
         update.setIsActive(true);
 
-        assertThatThrownBy(() -> gymFacade.updateTrainee(validCredentials, update))
+        assertThatThrownBy(() -> gymFacade.updateTrainee(update))
                 .isInstanceOf(EntityNotFoundException.class);
 
-        assertThatThrownBy(() -> gymFacade.deleteTraineeByUsername(validCredentials, "missing.username"))
+        assertThatThrownBy(() -> gymFacade.deleteTraineeByUsername("missing.username"))
                 .isInstanceOf(EntityNotFoundException.class);
     }
 
@@ -255,6 +265,13 @@ class TraineeServiceTest {
                 traineeDao.findByUsername(username).orElseThrow());
     }
 
+    private void authenticateAs(String username) {
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(username, null, List.of());
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
     private TrainingType ensureTrainingType(String name) {
         return transactionTemplate.execute(status -> {
             var session = sessionFactory.getCurrentSession();
@@ -279,7 +296,7 @@ class TraineeServiceTest {
     private long countAssignedTrainers(String traineeUsername) {
         return transactionTemplate.execute(status -> {
             Trainee trainee = traineeDao.findByUsername(traineeUsername).orElseThrow();
-            return (long) trainee.getTrainers().size();
+            return trainee.getTrainers().size();
         });
     }
 }

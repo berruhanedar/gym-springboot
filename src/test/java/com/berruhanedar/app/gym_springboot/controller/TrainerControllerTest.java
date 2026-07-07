@@ -49,8 +49,6 @@ class TrainerControllerTest {
         request.setSpecializationName("Boxing");
 
         RegistrationResponseDTO response = new RegistrationResponseDTO("Daniel.Anderson", "password123");
-        response.setUsername("Daniel.Anderson");
-        response.setPassword("password123");
 
         when(trainerService.createTrainer(any(NewTrainerRequestDTO.class)))
                 .thenReturn(response);
@@ -60,7 +58,9 @@ class TrainerControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
 
-        ArgumentCaptor<NewTrainerRequestDTO> captor = ArgumentCaptor.forClass(NewTrainerRequestDTO.class);
+        ArgumentCaptor<NewTrainerRequestDTO> captor =
+                ArgumentCaptor.forClass(NewTrainerRequestDTO.class);
+
         verify(trainerService).createTrainer(captor.capture());
 
         assertThat(captor.getValue().getFirstName()).isEqualTo("Daniel");
@@ -91,38 +91,21 @@ class TrainerControllerTest {
         response.setSpecializationName("Boxing");
         response.setIsActive(true);
 
-        when(trainerService.getTrainerByUsername(any(CredentialsDTO.class), eq("Daniel.Anderson")))
+        when(trainerService.getTrainerByUsername("Daniel.Anderson"))
                 .thenReturn(response);
 
-        mockMvc.perform(get("/api/trainers/Daniel.Anderson")
-                        .param("username", "Daniel.Anderson")
-                        .param("password", "password123"))
+        mockMvc.perform(get("/api/trainers/Daniel.Anderson"))
                 .andExpect(status().isOk());
 
-        ArgumentCaptor<CredentialsDTO> captor = ArgumentCaptor.forClass(CredentialsDTO.class);
-        verify(trainerService).getTrainerByUsername(captor.capture(), eq("Daniel.Anderson"));
-
-        assertThat(captor.getValue().getUsername()).isEqualTo("Daniel.Anderson");
-        assertThat(captor.getValue().getPassword()).isEqualTo("password123");
-    }
-
-    @Test
-    void shouldReturnBadRequestWhenGetTrainerProfileCredentialsAreInvalid() throws Exception {
-        mockMvc.perform(get("/api/trainers/Daniel.Anderson")
-                        .param("username", "Daniel.Anderson"))
-                .andExpect(status().isBadRequest());
-
-        verify(trainerService, never()).getTrainerByUsername(any(), anyString());
+        verify(trainerService).getTrainerByUsername("Daniel.Anderson");
     }
 
     @Test
     void shouldReturnUnauthorizedWhenGetTrainerProfileFails() throws Exception {
         doThrow(new AuthenticationException("Invalid username or password."))
-                .when(trainerService).getTrainerByUsername(any(CredentialsDTO.class), eq("Daniel.Anderson"));
+                .when(trainerService).getTrainerByUsername("Daniel.Anderson");
 
-        mockMvc.perform(get("/api/trainers/Daniel.Anderson")
-                        .param("username", "Daniel.Anderson")
-                        .param("password", "wrongPassword"))
+        mockMvc.perform(get("/api/trainers/Daniel.Anderson"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -141,23 +124,19 @@ class TrainerControllerTest {
         response.setSpecializationName("Boxing");
         response.setIsActive(true);
 
-        when(trainerService.updateTrainer(any(CredentialsDTO.class), any(UpdateTrainerRequestDTO.class)))
+        when(trainerService.updateTrainer(any(UpdateTrainerRequestDTO.class)))
                 .thenReturn(response);
 
         mockMvc.perform(put("/api/trainers")
-                        .param("username", "Daniel.Anderson")
-                        .param("password", "password123")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        ArgumentCaptor<CredentialsDTO> credentialsCaptor = ArgumentCaptor.forClass(CredentialsDTO.class);
         ArgumentCaptor<UpdateTrainerRequestDTO> requestCaptor =
                 ArgumentCaptor.forClass(UpdateTrainerRequestDTO.class);
-        verify(trainerService).updateTrainer(credentialsCaptor.capture(), requestCaptor.capture());
 
-        assertThat(credentialsCaptor.getValue().getUsername()).isEqualTo("Daniel.Anderson");
-        assertThat(credentialsCaptor.getValue().getPassword()).isEqualTo("password123");
+        verify(trainerService).updateTrainer(requestCaptor.capture());
+
         assertThat(requestCaptor.getValue().getUsername()).isEqualTo("Daniel.Anderson");
         assertThat(requestCaptor.getValue().getFirstName()).isEqualTo("Dan");
         assertThat(requestCaptor.getValue().getIsActive()).isTrue();
@@ -169,13 +148,11 @@ class TrainerControllerTest {
         request.setUsername("Daniel.Anderson");
 
         mockMvc.perform(put("/api/trainers")
-                        .param("username", "Daniel.Anderson")
-                        .param("password", "password123")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(trainerService, never()).updateTrainer(any(), any());
+        verify(trainerService, never()).updateTrainer(any());
     }
 
     @Test
@@ -185,18 +162,15 @@ class TrainerControllerTest {
         request.setIsActive(false);
 
         mockMvc.perform(patch("/api/trainers/activation")
-                        .param("username", "Daniel.Anderson")
-                        .param("password", "password123")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        ArgumentCaptor<CredentialsDTO> credentialsCaptor = ArgumentCaptor.forClass(CredentialsDTO.class);
         ArgumentCaptor<UpdateActivationStatusDTO> requestCaptor =
                 ArgumentCaptor.forClass(UpdateActivationStatusDTO.class);
-        verify(trainerService).changeActivationStatus(credentialsCaptor.capture(), requestCaptor.capture());
 
-        assertThat(credentialsCaptor.getValue().getUsername()).isEqualTo("Daniel.Anderson");
+        verify(trainerService).changeActivationStatus(requestCaptor.capture());
+
         assertThat(requestCaptor.getValue().getUsername()).isEqualTo("Daniel.Anderson");
         assertThat(requestCaptor.getValue().getIsActive()).isFalse();
     }
@@ -207,12 +181,10 @@ class TrainerControllerTest {
         request.setUsername("Daniel.Anderson");
 
         mockMvc.perform(patch("/api/trainers/activation")
-                        .param("username", "Daniel.Anderson")
-                        .param("password", "password123")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(trainerService, never()).changeActivationStatus(any(), any());
+        verify(trainerService, never()).changeActivationStatus(any());
     }
 }

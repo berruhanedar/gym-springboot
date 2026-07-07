@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
 class TraineeControllerTest {
@@ -62,8 +62,6 @@ class TraineeControllerTest {
 
         RegistrationResponseDTO response =
                 new RegistrationResponseDTO("John.Doe", "password123");
-        response.setUsername("John.Doe");
-        response.setPassword("password123");
 
         when(traineeService.createTrainee(any(NewTraineeRequestDTO.class)))
                 .thenReturn(response);
@@ -73,7 +71,9 @@ class TraineeControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
 
-        ArgumentCaptor<NewTraineeRequestDTO> captor = ArgumentCaptor.forClass(NewTraineeRequestDTO.class);
+        ArgumentCaptor<NewTraineeRequestDTO> captor =
+                ArgumentCaptor.forClass(NewTraineeRequestDTO.class);
+
         verify(traineeService).createTrainee(captor.capture());
 
         assertThat(captor.getValue().getFirstName()).isEqualTo("John");
@@ -105,38 +105,21 @@ class TraineeControllerTest {
         response.setAddress("Istanbul");
         response.setIsActive(true);
 
-        when(traineeService.getTraineeByUsername(any(CredentialsDTO.class), eq("John.Doe")))
+        when(traineeService.getTraineeByUsername("John.Doe"))
                 .thenReturn(response);
 
-        mockMvc.perform(get("/api/trainees/John.Doe")
-                        .param("username", "John.Doe")
-                        .param("password", "password123"))
+        mockMvc.perform(get("/api/trainees/John.Doe"))
                 .andExpect(status().isOk());
 
-        ArgumentCaptor<CredentialsDTO> captor = ArgumentCaptor.forClass(CredentialsDTO.class);
-        verify(traineeService).getTraineeByUsername(captor.capture(), eq("John.Doe"));
-
-        assertThat(captor.getValue().getUsername()).isEqualTo("John.Doe");
-        assertThat(captor.getValue().getPassword()).isEqualTo("password123");
-    }
-
-    @Test
-    void shouldReturnBadRequestWhenGetTraineeProfileCredentialsAreInvalid() throws Exception {
-        mockMvc.perform(get("/api/trainees/John.Doe")
-                        .param("username", "John.Doe"))
-                .andExpect(status().isBadRequest());
-
-        verify(traineeService, never()).getTraineeByUsername(any(), anyString());
+        verify(traineeService).getTraineeByUsername("John.Doe");
     }
 
     @Test
     void shouldReturnUnauthorizedWhenGetTraineeProfileFails() throws Exception {
         doThrow(new AuthenticationException("Invalid username or password."))
-                .when(traineeService).getTraineeByUsername(any(CredentialsDTO.class), eq("John.Doe"));
+                .when(traineeService).getTraineeByUsername("John.Doe");
 
-        mockMvc.perform(get("/api/trainees/John.Doe")
-                        .param("username", "John.Doe")
-                        .param("password", "wrongPassword"))
+        mockMvc.perform(get("/api/trainees/John.Doe"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -158,25 +141,23 @@ class TraineeControllerTest {
         response.setAddress("Ankara");
         response.setIsActive(true);
 
-        when(traineeService.updateTrainee(any(CredentialsDTO.class), any(UpdateTraineeRequestDTO.class)))
+        when(traineeService.updateTrainee(any(UpdateTraineeRequestDTO.class)))
                 .thenReturn(response);
 
         mockMvc.perform(put("/api/trainees")
-                        .param("username", "John.Doe")
-                        .param("password", "password123")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        ArgumentCaptor<CredentialsDTO> credentialsCaptor = ArgumentCaptor.forClass(CredentialsDTO.class);
         ArgumentCaptor<UpdateTraineeRequestDTO> requestCaptor =
                 ArgumentCaptor.forClass(UpdateTraineeRequestDTO.class);
-        verify(traineeService).updateTrainee(credentialsCaptor.capture(), requestCaptor.capture());
 
-        assertThat(credentialsCaptor.getValue().getUsername()).isEqualTo("John.Doe");
-        assertThat(credentialsCaptor.getValue().getPassword()).isEqualTo("password123");
+        verify(traineeService).updateTrainee(requestCaptor.capture());
+
+        assertThat(requestCaptor.getValue().getUsername()).isEqualTo("John.Doe");
         assertThat(requestCaptor.getValue().getFirstName()).isEqualTo("Johnny");
         assertThat(requestCaptor.getValue().getAddress()).isEqualTo("Ankara");
+        assertThat(requestCaptor.getValue().getIsActive()).isTrue();
     }
 
     @Test
@@ -185,27 +166,28 @@ class TraineeControllerTest {
         request.setUsername("John.Doe");
 
         mockMvc.perform(put("/api/trainees")
-                        .param("username", "John.Doe")
-                        .param("password", "password123")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(traineeService, never()).updateTrainee(any(), any());
+        verify(traineeService, never()).updateTrainee(any());
     }
 
     @Test
     void shouldDeleteTraineeProfile() throws Exception {
-        mockMvc.perform(delete("/api/trainees/John.Doe")
-                        .param("username", "John.Doe")
-                        .param("password", "password123"))
+        mockMvc.perform(delete("/api/trainees/John.Doe"))
                 .andExpect(status().isOk());
 
-        ArgumentCaptor<CredentialsDTO> captor = ArgumentCaptor.forClass(CredentialsDTO.class);
-        verify(traineeService).deleteTraineeByUsername(captor.capture(), eq("John.Doe"));
+        verify(traineeService).deleteTraineeByUsername("John.Doe");
+    }
 
-        assertThat(captor.getValue().getUsername()).isEqualTo("John.Doe");
-        assertThat(captor.getValue().getPassword()).isEqualTo("password123");
+    @Test
+    void shouldReturnUnauthorizedWhenDeleteTraineeProfileFails() throws Exception {
+        doThrow(new AuthenticationException("Invalid username or password."))
+                .when(traineeService).deleteTraineeByUsername("John.Doe");
+
+        mockMvc.perform(delete("/api/trainees/John.Doe"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -216,19 +198,22 @@ class TraineeControllerTest {
         trainer.setLastName("Miller");
         trainer.setSpecializationName("Yoga");
 
-        when(trainerService.getTrainersNotAssignedToTrainee(any(CredentialsDTO.class), eq("John.Doe")))
+        when(trainerService.getTrainersNotAssignedToTrainee("John.Doe"))
                 .thenReturn(List.of(trainer));
 
-        mockMvc.perform(get("/api/trainees/John.Doe/unassigned-trainers")
-                        .param("username", "John.Doe")
-                        .param("password", "password123"))
+        mockMvc.perform(get("/api/trainees/John.Doe/unassigned-trainers"))
                 .andExpect(status().isOk());
 
-        ArgumentCaptor<CredentialsDTO> captor = ArgumentCaptor.forClass(CredentialsDTO.class);
-        verify(trainerService).getTrainersNotAssignedToTrainee(captor.capture(), eq("John.Doe"));
+        verify(trainerService).getTrainersNotAssignedToTrainee("John.Doe");
+    }
 
-        assertThat(captor.getValue().getUsername()).isEqualTo("John.Doe");
-        assertThat(captor.getValue().getPassword()).isEqualTo("password123");
+    @Test
+    void shouldReturnUnauthorizedWhenGetNotAssignedActiveTrainersFails() throws Exception {
+        doThrow(new AuthenticationException("Invalid username or password."))
+                .when(trainerService).getTrainersNotAssignedToTrainee("John.Doe");
+
+        mockMvc.perform(get("/api/trainees/John.Doe/unassigned-trainers"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -246,22 +231,19 @@ class TraineeControllerTest {
         responseTrainer.setLastName("Miller");
         responseTrainer.setSpecializationName("Yoga");
 
-        when(traineeService.updateTraineeTrainers(any(CredentialsDTO.class), any(UpdateTraineeTrainersRequestDTO.class)))
+        when(traineeService.updateTraineeTrainers(any(UpdateTraineeTrainersRequestDTO.class)))
                 .thenReturn(List.of(responseTrainer));
 
         mockMvc.perform(put("/api/trainees/trainers")
-                        .param("username", "John.Doe")
-                        .param("password", "password123")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        ArgumentCaptor<CredentialsDTO> credentialsCaptor = ArgumentCaptor.forClass(CredentialsDTO.class);
         ArgumentCaptor<UpdateTraineeTrainersRequestDTO> requestCaptor =
                 ArgumentCaptor.forClass(UpdateTraineeTrainersRequestDTO.class);
-        verify(traineeService).updateTraineeTrainers(credentialsCaptor.capture(), requestCaptor.capture());
 
-        assertThat(credentialsCaptor.getValue().getUsername()).isEqualTo("John.Doe");
+        verify(traineeService).updateTraineeTrainers(requestCaptor.capture());
+
         assertThat(requestCaptor.getValue().getTraineeUsername()).isEqualTo("John.Doe");
         assertThat(requestCaptor.getValue().getTrainers()).hasSize(1);
         assertThat(requestCaptor.getValue().getTrainers().get(0).getUsername()).isEqualTo("Bob.Miller");
@@ -274,13 +256,11 @@ class TraineeControllerTest {
         request.setTrainers(Collections.emptyList());
 
         mockMvc.perform(put("/api/trainees/trainers")
-                        .param("username", "John.Doe")
-                        .param("password", "password123")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(traineeService, never()).updateTraineeTrainers(any(), any());
+        verify(traineeService, never()).updateTraineeTrainers(any());
     }
 
     @Test
@@ -290,18 +270,15 @@ class TraineeControllerTest {
         request.setIsActive(false);
 
         mockMvc.perform(patch("/api/trainees/activation")
-                        .param("username", "John.Doe")
-                        .param("password", "password123")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        ArgumentCaptor<CredentialsDTO> credentialsCaptor = ArgumentCaptor.forClass(CredentialsDTO.class);
         ArgumentCaptor<UpdateActivationStatusDTO> requestCaptor =
                 ArgumentCaptor.forClass(UpdateActivationStatusDTO.class);
-        verify(traineeService).changeTraineeActivationStatus(credentialsCaptor.capture(), requestCaptor.capture());
 
-        assertThat(credentialsCaptor.getValue().getUsername()).isEqualTo("John.Doe");
+        verify(traineeService).changeTraineeActivationStatus(requestCaptor.capture());
+
         assertThat(requestCaptor.getValue().getUsername()).isEqualTo("John.Doe");
         assertThat(requestCaptor.getValue().getIsActive()).isFalse();
     }
@@ -312,12 +289,10 @@ class TraineeControllerTest {
         request.setUsername("John.Doe");
 
         mockMvc.perform(patch("/api/trainees/activation")
-                        .param("username", "John.Doe")
-                        .param("password", "password123")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(traineeService, never()).changeTraineeActivationStatus(any(), any());
+        verify(traineeService, never()).changeTraineeActivationStatus(any());
     }
 }

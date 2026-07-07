@@ -25,6 +25,7 @@ class BaseBindExceptionHandlerTest {
         ResponseEntity<IBaseException> response = handler.processBindingResult(result);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getMessage()).isEqualTo("Validation failed");
         assertThat(response.getBody().getErrorsInternal()).hasSize(2);
     }

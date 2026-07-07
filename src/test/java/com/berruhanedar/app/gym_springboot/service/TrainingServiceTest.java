@@ -7,9 +7,12 @@ import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.facade.GymFacade;
 import org.hibernate.SessionFactory;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -34,15 +37,21 @@ class TrainingServiceTest {
     @Autowired
     private SessionFactory sessionFactory;
 
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
-    void shouldCreateTrainingWhenCredentialsAndReferencesAreValid() {
+    void shouldCreateTrainingWhenReferencesAreValid() {
         TrainingType yoga = ensureTrainingType("Yoga");
 
         RegistrationResponseDTO trainee = createTrainee("Sophia", "Williams");
         RegistrationResponseDTO trainer = createTrainer("James", "Wilson", yoga);
 
+        authenticateAs(trainer.getUsername());
+
         gymFacade.createTraining(
-                credentials(trainer),
                 newTraining(
                         trainee.getUsername(),
                         trainer.getUsername(),
@@ -52,8 +61,9 @@ class TrainingServiceTest {
                 )
         );
 
+        authenticateAs(trainee.getUsername());
+
         List<TraineeTrainingResponseDTO> trainings = gymFacade.getTraineeTrainings(
-                credentials(trainee),
                 trainee.getUsername(),
                 traineeFilter(null, null, null, null)
         );
@@ -74,26 +84,27 @@ class TrainingServiceTest {
         RegistrationResponseDTO yogaTrainer = createTrainer("Henry", "Young", yoga);
         RegistrationResponseDTO cardioTrainer = createTrainer("Liam", "Stone", cardio);
 
+        authenticateAs(yogaTrainer.getUsername());
         gymFacade.createTraining(
-                credentials(yogaTrainer),
                 newTraining(trainee.getUsername(), yogaTrainer.getUsername(), "Yoga Match",
                         LocalDate.now().plusDays(2), 50)
         );
 
+        authenticateAs(cardioTrainer.getUsername());
         gymFacade.createTraining(
-                credentials(cardioTrainer),
                 newTraining(trainee.getUsername(), cardioTrainer.getUsername(), "Cardio Out",
                         LocalDate.now().plusDays(2), 30)
         );
 
+        authenticateAs(yogaTrainer.getUsername());
         gymFacade.createTraining(
-                credentials(yogaTrainer),
                 newTraining(trainee.getUsername(), yogaTrainer.getUsername(), "Old Yoga",
                         LocalDate.now().plusDays(10), 40)
         );
 
+        authenticateAs(trainee.getUsername());
+
         List<TraineeTrainingResponseDTO> result = gymFacade.getTraineeTrainings(
-                credentials(trainee),
                 trainee.getUsername(),
                 traineeFilter(
                         LocalDate.now().plusDays(1),
@@ -115,26 +126,24 @@ class TrainingServiceTest {
         RegistrationResponseDTO expectedTrainee = createTrainee("Expected", "Person");
         RegistrationResponseDTO otherTrainee = createTrainee("Other", "Person");
 
+        authenticateAs(trainer.getUsername());
+
         gymFacade.createTraining(
-                credentials(trainer),
                 newTraining(expectedTrainee.getUsername(), trainer.getUsername(), "Pilates Match",
                         LocalDate.now().plusDays(4), 55)
         );
 
         gymFacade.createTraining(
-                credentials(trainer),
                 newTraining(otherTrainee.getUsername(), trainer.getUsername(), "Pilates Other",
                         LocalDate.now().plusDays(4), 35)
         );
 
         gymFacade.createTraining(
-                credentials(trainer),
                 newTraining(expectedTrainee.getUsername(), trainer.getUsername(), "Pilates Later",
                         LocalDate.now().plusDays(20), 35)
         );
 
         List<TrainerTrainingResponseDTO> result = gymFacade.getTrainerTrainings(
-                credentials(trainer),
                 trainer.getUsername(),
                 trainerFilter(
                         LocalDate.now().plusDays(3),
@@ -155,20 +164,21 @@ class TrainingServiceTest {
         RegistrationResponseDTO trainee = createTrainee("Blank", "Criteria");
         RegistrationResponseDTO trainer = createTrainer("Blank", "Trainer", stretching);
 
+        authenticateAs(trainer.getUsername());
+
         gymFacade.createTraining(
-                credentials(trainer),
                 newTraining(trainee.getUsername(), trainer.getUsername(), "Stretch One",
                         LocalDate.now().plusDays(1), 20)
         );
 
         gymFacade.createTraining(
-                credentials(trainer),
                 newTraining(trainee.getUsername(), trainer.getUsername(), "Stretch Two",
                         LocalDate.now().plusDays(2), 25)
         );
 
+        authenticateAs(trainee.getUsername());
+
         List<TraineeTrainingResponseDTO> result = gymFacade.getTraineeTrainings(
-                credentials(trainee),
                 trainee.getUsername(),
                 traineeFilter(null, null, " ", "")
         );
@@ -183,9 +193,10 @@ class TrainingServiceTest {
         TrainingType yoga = ensureTrainingType("Yoga");
         RegistrationResponseDTO trainer = createTrainer("Valid", "Trainer", yoga);
 
+        authenticateAs(trainer.getUsername());
+
         assertThatThrownBy(() ->
                 gymFacade.createTraining(
-                        credentials(trainer),
                         newTraining(
                                 "missing.trainee",
                                 trainer.getUsername(),
@@ -203,9 +214,10 @@ class TrainingServiceTest {
         RegistrationResponseDTO trainee = createTrainee("Lily", "Scott");
         RegistrationResponseDTO trainer = createTrainer("Valid", "Trainer", yoga);
 
+        authenticateAs(trainer.getUsername());
+
         assertThatThrownBy(() ->
                 gymFacade.createTraining(
-                        credentials(trainer),
                         newTraining(
                                 trainee.getUsername(),
                                 "missing.trainer",
@@ -217,31 +229,27 @@ class TrainingServiceTest {
     }
 
     @Test
-    void shouldRejectTrainingOperationsWhenCredentialsAreInvalid() {
+    void shouldRejectTrainingOperationsWhenAuthenticatedUserIsNotAuthorized() {
         TrainingType yoga = ensureTrainingType("Yoga");
 
         RegistrationResponseDTO trainee = createTrainee("Auth", "Trainee");
         RegistrationResponseDTO trainer = createTrainer("Auth", "Trainer", yoga);
 
-        CredentialsDTO wrongTrainerCredentials = credentials(trainer.getUsername(), "wrong-pass");
-        CredentialsDTO wrongTraineeCredentials = credentials(trainee.getUsername(), "wrong-pass");
+        authenticateAs("another.user");
 
         assertThatThrownBy(() -> gymFacade.createTraining(
-                wrongTrainerCredentials,
                 newTraining(trainee.getUsername(), trainer.getUsername(), "Auth Fail",
                         LocalDate.now().plusDays(1), 45)
         ))
                 .isInstanceOf(AuthenticationException.class);
 
         assertThatThrownBy(() -> gymFacade.getTraineeTrainings(
-                wrongTraineeCredentials,
                 trainee.getUsername(),
                 traineeFilter(null, null, null, null)
         ))
                 .isInstanceOf(AuthenticationException.class);
 
         assertThatThrownBy(() -> gymFacade.getTrainerTrainings(
-                wrongTrainerCredentials,
                 trainer.getUsername(),
                 trainerFilter(null, null, null)
         ))
@@ -252,12 +260,9 @@ class TrainingServiceTest {
     void shouldReturnTrainingTypes() {
         ensureTrainingType("Yoga");
         ensureTrainingType("Cardio");
+        ensureTrainingType("Pilates");
 
-        RegistrationResponseDTO trainer =
-                createTrainer("Type", "Viewer", ensureTrainingType("Pilates"));
-
-        List<TrainingTypeResponseDTO> result =
-                gymFacade.getTrainingTypes(credentials(trainer));
+        List<TrainingTypeResponseDTO> result = gymFacade.getTrainingTypes();
 
         assertThat(result)
                 .extracting(TrainingTypeResponseDTO::getTrainingTypeName)
@@ -300,17 +305,6 @@ class TrainingServiceTest {
         return dto;
     }
 
-    private CredentialsDTO credentials(RegistrationResponseDTO response) {
-        return credentials(response.getUsername(), response.getPassword());
-    }
-
-    private CredentialsDTO credentials(String username, String password) {
-        CredentialsDTO credentials = new CredentialsDTO();
-        credentials.setUsername(username);
-        credentials.setPassword(password);
-        return credentials;
-    }
-
     private TraineeTrainingsFilterDTO traineeFilter(
             LocalDate periodFrom,
             LocalDate periodTo,
@@ -335,6 +329,13 @@ class TrainingServiceTest {
         filter.setPeriodTo(periodTo);
         filter.setTraineeName(traineeName);
         return filter;
+    }
+
+    private void authenticateAs(String username) {
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(username, null, List.of());
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     private TrainingType ensureTrainingType(String name) {

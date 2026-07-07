@@ -56,26 +56,22 @@ class TrainingControllerTest {
         training.setTrainerName("Daniel Anderson");
 
         when(trainingService.getTraineeTrainings(
-                any(CredentialsDTO.class), eq("John.Doe"), any(TraineeTrainingsFilterDTO.class)))
+                eq("John.Doe"), any(TraineeTrainingsFilterDTO.class)))
                 .thenReturn(List.of(training));
 
         mockMvc.perform(get("/api/trainings/trainees/John.Doe/trainings")
-                        .param("username", "John.Doe")
-                        .param("password", "password123")
                         .param("periodFrom", "2026-07-01")
                         .param("periodTo", "2026-07-31")
                         .param("trainerName", "Daniel")
                         .param("trainingType", "Yoga"))
                 .andExpect(status().isOk());
 
-        ArgumentCaptor<CredentialsDTO> credentialsCaptor = ArgumentCaptor.forClass(CredentialsDTO.class);
         ArgumentCaptor<TraineeTrainingsFilterDTO> filterCaptor =
                 ArgumentCaptor.forClass(TraineeTrainingsFilterDTO.class);
-        verify(trainingService).getTraineeTrainings(
-                credentialsCaptor.capture(), eq("John.Doe"), filterCaptor.capture());
 
-        assertThat(credentialsCaptor.getValue().getUsername()).isEqualTo("John.Doe");
-        assertThat(credentialsCaptor.getValue().getPassword()).isEqualTo("password123");
+        verify(trainingService).getTraineeTrainings(
+                eq("John.Doe"), filterCaptor.capture());
+
         assertThat(filterCaptor.getValue().getPeriodFrom()).isEqualTo(LocalDate.of(2026, 7, 1));
         assertThat(filterCaptor.getValue().getPeriodTo()).isEqualTo(LocalDate.of(2026, 7, 31));
         assertThat(filterCaptor.getValue().getTrainerName()).isEqualTo("Daniel");
@@ -83,23 +79,12 @@ class TrainingControllerTest {
     }
 
     @Test
-    void shouldReturnBadRequestWhenGetTraineeTrainingsCredentialsAreInvalid() throws Exception {
-        mockMvc.perform(get("/api/trainings/trainees/John.Doe/trainings")
-                        .param("username", "John.Doe"))
-                .andExpect(status().isBadRequest());
-
-        verify(trainingService, never()).getTraineeTrainings(any(), anyString(), any());
-    }
-
-    @Test
     void shouldReturnUnauthorizedWhenGetTraineeTrainingsFails() throws Exception {
         doThrow(new AuthenticationException("Invalid username or password."))
-                .when(trainingService).getTraineeTrainings(
-                        any(CredentialsDTO.class), eq("John.Doe"), any(TraineeTrainingsFilterDTO.class));
+                .when(trainingService)
+                .getTraineeTrainings(eq("John.Doe"), any(TraineeTrainingsFilterDTO.class));
 
-        mockMvc.perform(get("/api/trainings/trainees/John.Doe/trainings")
-                        .param("username", "John.Doe")
-                        .param("password", "wrongPassword"))
+        mockMvc.perform(get("/api/trainings/trainees/John.Doe/trainings"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -113,25 +98,21 @@ class TrainingControllerTest {
         training.setTraineeName("John Doe");
 
         when(trainingService.getTrainerTrainings(
-                any(CredentialsDTO.class), eq("Daniel.Anderson"), any(TrainerTrainingsFilterDTO.class)))
+                eq("Daniel.Anderson"), any(TrainerTrainingsFilterDTO.class)))
                 .thenReturn(List.of(training));
 
         mockMvc.perform(get("/api/trainings/trainers/Daniel.Anderson/trainings")
-                        .param("username", "Daniel.Anderson")
-                        .param("password", "password123")
                         .param("periodFrom", "2026-07-01")
                         .param("periodTo", "2026-07-31")
                         .param("traineeName", "John"))
                 .andExpect(status().isOk());
 
-        ArgumentCaptor<CredentialsDTO> credentialsCaptor = ArgumentCaptor.forClass(CredentialsDTO.class);
         ArgumentCaptor<TrainerTrainingsFilterDTO> filterCaptor =
                 ArgumentCaptor.forClass(TrainerTrainingsFilterDTO.class);
-        verify(trainingService).getTrainerTrainings(
-                credentialsCaptor.capture(), eq("Daniel.Anderson"), filterCaptor.capture());
 
-        assertThat(credentialsCaptor.getValue().getUsername()).isEqualTo("Daniel.Anderson");
-        assertThat(credentialsCaptor.getValue().getPassword()).isEqualTo("password123");
+        verify(trainingService).getTrainerTrainings(
+                eq("Daniel.Anderson"), filterCaptor.capture());
+
         assertThat(filterCaptor.getValue().getPeriodFrom()).isEqualTo(LocalDate.of(2026, 7, 1));
         assertThat(filterCaptor.getValue().getPeriodTo()).isEqualTo(LocalDate.of(2026, 7, 31));
         assertThat(filterCaptor.getValue().getTraineeName()).isEqualTo("John");
@@ -146,20 +127,16 @@ class TrainingControllerTest {
         request.setTrainingDate(LocalDate.of(2026, 7, 10));
         request.setTrainingDuration(60);
 
-        mockMvc.perform(post("/api/trainings/trainings")
-                        .param("username", "John.Doe")
-                        .param("password", "password123")
+        mockMvc.perform(post("/api/trainings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        ArgumentCaptor<CredentialsDTO> credentialsCaptor = ArgumentCaptor.forClass(CredentialsDTO.class);
         ArgumentCaptor<NewTrainingRequestDTO> requestCaptor =
                 ArgumentCaptor.forClass(NewTrainingRequestDTO.class);
-        verify(trainingService).createTraining(credentialsCaptor.capture(), requestCaptor.capture());
 
-        assertThat(credentialsCaptor.getValue().getUsername()).isEqualTo("John.Doe");
-        assertThat(credentialsCaptor.getValue().getPassword()).isEqualTo("password123");
+        verify(trainingService).createTraining(requestCaptor.capture());
+
         assertThat(requestCaptor.getValue().getTraineeUsername()).isEqualTo("John.Doe");
         assertThat(requestCaptor.getValue().getTrainerUsername()).isEqualTo("Daniel.Anderson");
         assertThat(requestCaptor.getValue().getTrainingName()).isEqualTo("Morning Yoga");
@@ -176,14 +153,12 @@ class TrainingControllerTest {
         request.setTrainingDate(LocalDate.of(2026, 7, 10));
         request.setTrainingDuration(0);
 
-        mockMvc.perform(post("/api/trainings/trainings")
-                        .param("username", "John.Doe")
-                        .param("password", "password123")
+        mockMvc.perform(post("/api/trainings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(trainingService, never()).createTraining(any(), any());
+        verify(trainingService, never()).createTraining(any());
     }
 
     @Test
@@ -192,27 +167,12 @@ class TrainingControllerTest {
         type.setId(1L);
         type.setTrainingTypeName("Yoga");
 
-        when(trainingService.getTrainingTypes(any(CredentialsDTO.class)))
+        when(trainingService.getTrainingTypes())
                 .thenReturn(List.of(type));
 
-        mockMvc.perform(get("/api/trainings/types")
-                        .param("username", "John.Doe")
-                        .param("password", "password123"))
+        mockMvc.perform(get("/api/trainings/types"))
                 .andExpect(status().isOk());
 
-        ArgumentCaptor<CredentialsDTO> captor = ArgumentCaptor.forClass(CredentialsDTO.class);
-        verify(trainingService).getTrainingTypes(captor.capture());
-
-        assertThat(captor.getValue().getUsername()).isEqualTo("John.Doe");
-        assertThat(captor.getValue().getPassword()).isEqualTo("password123");
-    }
-
-    @Test
-    void shouldReturnBadRequestWhenGetTrainingTypesCredentialsAreInvalid() throws Exception {
-        mockMvc.perform(get("/api/trainings/types")
-                        .param("username", "John.Doe"))
-                .andExpect(status().isBadRequest());
-
-        verify(trainingService, never()).getTrainingTypes(any());
+        verify(trainingService).getTrainingTypes();
     }
 }

@@ -16,11 +16,8 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
@@ -49,13 +46,20 @@ class AuthenticationControllerTest {
 
     @Test
     void shouldLoginSuccessfully() throws Exception {
-        mockMvc.perform(get("/api/login")
-                        .param("username", "John.Doe")
-                        .param("password", "password123"))
+        CredentialsDTO credentials = new CredentialsDTO();
+        credentials.setUsername("John.Doe");
+        credentials.setPassword("password123");
+
+        when(authenticationService.login(any(CredentialsDTO.class)))
+                .thenReturn("jwt-token");
+
+        mockMvc.perform(post("/api/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(credentials)))
                 .andExpect(status().isOk());
 
         ArgumentCaptor<CredentialsDTO> captor = ArgumentCaptor.forClass(CredentialsDTO.class);
-        verify(authenticationService).authenticate(captor.capture());
+        verify(authenticationService).login(captor.capture());
 
         assertThat(captor.getValue().getUsername()).isEqualTo("John.Doe");
         assertThat(captor.getValue().getPassword()).isEqualTo("password123");
@@ -63,21 +67,29 @@ class AuthenticationControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenLoginCredentialsAreInvalid() throws Exception {
-        mockMvc.perform(get("/api/login")
-                        .param("username", "John.Doe"))
+        CredentialsDTO credentials = new CredentialsDTO();
+        credentials.setUsername("John.Doe");
+
+        mockMvc.perform(post("/api/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(credentials)))
                 .andExpect(status().isBadRequest());
 
-        verify(authenticationService, org.mockito.Mockito.never()).authenticate(any());
+        verify(authenticationService, never()).login(any());
     }
 
     @Test
     void shouldReturnUnauthorizedWhenLoginFails() throws Exception {
-        doThrow(new AuthenticationException("Invalid username or password."))
-                .when(authenticationService).authenticate(any(CredentialsDTO.class));
+        CredentialsDTO credentials = new CredentialsDTO();
+        credentials.setUsername("John.Doe");
+        credentials.setPassword("wrongPassword");
 
-        mockMvc.perform(get("/api/login")
-                        .param("username", "John.Doe")
-                        .param("password", "wrongPassword"))
+        doThrow(new AuthenticationException("Invalid username or password."))
+                .when(authenticationService).login(any(CredentialsDTO.class));
+
+        mockMvc.perform(post("/api/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(credentials)))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -95,6 +107,7 @@ class AuthenticationControllerTest {
 
         ArgumentCaptor<ChangePasswordRequestDTO> captor =
                 ArgumentCaptor.forClass(ChangePasswordRequestDTO.class);
+
         verify(authenticationService).changePassword(captor.capture());
 
         assertThat(captor.getValue().getUsername()).isEqualTo("John.Doe");
@@ -112,7 +125,7 @@ class AuthenticationControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(authenticationService, org.mockito.Mockito.never()).changePassword(any());
+        verify(authenticationService, never()).changePassword(any());
     }
 
     @Test

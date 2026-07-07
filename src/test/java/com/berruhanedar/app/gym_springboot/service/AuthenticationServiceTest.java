@@ -11,11 +11,18 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 class AuthenticationServiceTest {
+
+    @Test
+    void shouldReturnTokenWhenLoginIsSuccessful() {
+        AuthenticationService service = serviceWith(trainee("trainee.user", "pass"), null);
+
+        String token = service.login(credentials("trainee.user", "pass"));
+
+        assertThat(token).isNotBlank();
+    }
 
     @Test
     void shouldAuthenticateTraineeWhenUsernameAndPasswordMatch() {
@@ -106,6 +113,7 @@ class AuthenticationServiceTest {
         AuthenticationService service = new AuthenticationService();
         service.setTraineeDao(new FakeTraineeDao(trainee));
         service.setTrainerDao(new FakeTrainerDao(trainer));
+        service.setJwtService(new JwtService());
         return service;
     }
 
