@@ -2,6 +2,7 @@ package com.berruhanedar.app.gym_springboot.controller;
 
 import com.berruhanedar.app.gym_springboot.dto.ChangePasswordRequestDTO;
 import com.berruhanedar.app.gym_springboot.dto.CredentialsDTO;
+import com.berruhanedar.app.gym_springboot.dto.TokenResponseDTO;
 import com.berruhanedar.app.gym_springboot.service.AuthenticationService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -21,10 +22,10 @@ public class AuthenticationController {
     }
 
     @ApiOperation(value = "Authenticate user")
-    @GetMapping("/login")
-    public ResponseEntity<Void> login(@Valid CredentialsDTO credentials) {
-        authenticationService.authenticate(credentials);
-        return ResponseEntity.ok().build();
+    @PostMapping("/login")
+    public ResponseEntity<TokenResponseDTO> login(@Valid @RequestBody CredentialsDTO credentials) {
+        String token = authenticationService.login(credentials);
+        return ResponseEntity.ok(new TokenResponseDTO(token));
     }
 
     @ApiOperation(value = "Change user password")

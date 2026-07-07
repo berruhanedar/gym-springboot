@@ -30,22 +30,22 @@ public class TrainerController {
 
     @ApiOperation(value = "Get trainer profile")
     @GetMapping("/trainers/{username}")
-    public ResponseEntity<TrainerResponseDTO> getTrainerProfile(@Valid @ModelAttribute CredentialsDTO credentials, @PathVariable @NotBlank String username) {
-        TrainerResponseDTO response = trainerService.getTrainerByUsername(credentials, username);
+    public ResponseEntity<TrainerResponseDTO> getTrainerProfile(@PathVariable @NotBlank String username) {
+        TrainerResponseDTO response = trainerService.getTrainerByUsername(username);
         return ResponseEntity.ok(response);
     }
 
     @ApiOperation(value = "Update trainer profile")
     @PutMapping("/trainers")
-    public ResponseEntity<TrainerResponseDTO> updateTrainerProfile(@Valid @ModelAttribute CredentialsDTO credentials, @Valid @RequestBody UpdateTrainerRequestDTO request) {
-        TrainerResponseDTO response = trainerService.updateTrainer(credentials, request);
+    public ResponseEntity<TrainerResponseDTO> updateTrainerProfile(@Valid @RequestBody UpdateTrainerRequestDTO request) {
+        TrainerResponseDTO response = trainerService.updateTrainer(request);
         return ResponseEntity.ok(response);
     }
 
     @ApiOperation(value = "Activate or deactivate trainer")
     @PatchMapping("/trainers/activation")
-    public ResponseEntity<Void> changeTrainerActivationStatus(@Valid @ModelAttribute CredentialsDTO credentials, @Valid @RequestBody UpdateActivationStatusDTO request) {
-        trainerService.changeActivationStatus(credentials, request);
+    public ResponseEntity<Void> changeTrainerActivationStatus(@Valid @RequestBody UpdateActivationStatusDTO request) {
+        trainerService.changeActivationStatus(request);
         return ResponseEntity.ok().build();
     }
 }

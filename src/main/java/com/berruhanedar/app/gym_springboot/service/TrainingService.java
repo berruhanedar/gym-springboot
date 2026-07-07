@@ -1,20 +1,15 @@
 package com.berruhanedar.app.gym_springboot.service;
 
-import com.berruhanedar.app.gym_springboot.dao.TraineeDao;
-import com.berruhanedar.app.gym_springboot.dao.TrainerDao;
-import com.berruhanedar.app.gym_springboot.dao.TrainingDao;
-import com.berruhanedar.app.gym_springboot.dao.TrainingTypeDao;
+import com.berruhanedar.app.gym_springboot.dao.*;
 import com.berruhanedar.app.gym_springboot.dto.*;
-import com.berruhanedar.app.gym_springboot.entity.Trainee;
-import com.berruhanedar.app.gym_springboot.entity.Trainer;
-import com.berruhanedar.app.gym_springboot.entity.Training;
+import com.berruhanedar.app.gym_springboot.entity.*;
 import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TrainingMapper;
 import com.berruhanedar.app.gym_springboot.mapper.TrainingTypeMapper;
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,11 +24,12 @@ public class TrainingService {
     private TrainerDao trainerDao;
     private TrainingTypeDao trainingTypeDao;
     private TrainingMapper trainingMapper;
-    private AuthenticationService authenticationService;
     private TrainingTypeMapper trainingTypeMapper;
 
     @Autowired
-    public void setTrainingTypeMapper(TrainingTypeMapper trainingTypeMapper) { this.trainingTypeMapper = trainingTypeMapper; }
+    public void setTrainingTypeMapper(TrainingTypeMapper trainingTypeMapper) {
+        this.trainingTypeMapper = trainingTypeMapper;
+    }
 
     @Autowired
     public void setTrainingDao(TrainingDao trainingDao) {
@@ -60,15 +56,9 @@ public class TrainingService {
         this.trainingMapper = trainingMapper;
     }
 
-    @Autowired
-    public void setAuthenticationService(AuthenticationService authenticationService) {
-        this.authenticationService = authenticationService;
-    }
-
     @Transactional(readOnly = true)
-    public List<TraineeTrainingResponseDTO> getTraineeTrainings(CredentialsDTO credentials, String username, TraineeTrainingsFilterDTO filter) {
-        authenticationService.authenticate(credentials);
-        validateTraineeAccess(credentials, username);
+    public List<TraineeTrainingResponseDTO> getTraineeTrainings(String username, TraineeTrainingsFilterDTO filter) {
+        validateCurrentUser(username, "Trainee is not authorized to access these trainings.");
         return trainingDao.findByTraineeUsernameAndCriteria(
                         username,
                         filter.getPeriodFrom(),
@@ -81,9 +71,8 @@ public class TrainingService {
     }
 
     @Transactional(readOnly = true)
-    public List<TrainerTrainingResponseDTO> getTrainerTrainings(CredentialsDTO credentials, String username, TrainerTrainingsFilterDTO filter) {
-        authenticationService.authenticate(credentials);
-        validateTrainerAccess(credentials, username);
+    public List<TrainerTrainingResponseDTO> getTrainerTrainings(String username, TrainerTrainingsFilterDTO filter) {
+        validateCurrentUser(username, "Trainer is not authorized to access these trainings.");
         return trainingDao.findByTrainerUsernameAndCriteria(
                         username,
                         filter.getPeriodFrom(),
@@ -95,9 +84,8 @@ public class TrainingService {
     }
 
     @Transactional
-    public void createTraining(CredentialsDTO trainerCredentials, NewTrainingRequestDTO dto) {
-        authenticationService.authenticate(trainerCredentials);
-        validateTrainerAccess(trainerCredentials, dto.getTrainerUsername());
+    public void createTraining(NewTrainingRequestDTO dto) {
+        validateCurrentUser(dto.getTrainerUsername(), "Trainer is not authorized to create this training.");
         log.info("Creating training. traineeUsername={}, trainerUsername={}", dto.getTraineeUsername(), dto.getTrainerUsername());
         Trainee trainee = findTraineeByUsername(dto.getTraineeUsername());
         Trainer trainer = findTrainerByUsername(dto.getTrainerUsername());
@@ -110,9 +98,7 @@ public class TrainingService {
     }
 
     @Transactional(readOnly = true)
-    public List<TrainingTypeResponseDTO> getTrainingTypes(CredentialsDTO credentials) {
-        authenticationService.authenticate(credentials);
-
+    public List<TrainingTypeResponseDTO> getTrainingTypes() {
         return trainingTypeDao.findAll()
                 .stream()
                 .map(trainingTypeMapper::toDTO)
@@ -127,17 +113,10 @@ public class TrainingService {
         return trainerDao.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + username));
     }
 
-    private void validateTraineeAccess(CredentialsDTO credentials, String username) {
-        if (!credentials.getUsername().equals(username)) {
-            throw new AuthenticationException(
-                    "Trainee is not authorized to access these trainings.");
-        }
-    }
-
-    private void validateTrainerAccess(CredentialsDTO credentials, String username) {
-        if (!credentials.getUsername().equals(username)) {
-            throw new AuthenticationException(
-                    "Trainer is not authorized to access these trainings.");
+    private void validateCurrentUser(String username, String message) {
+        String authenticatedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!authenticatedUsername.equals(username)) {
+            throw new AuthenticationException(message);
         }
     }
 }

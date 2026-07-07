@@ -24,30 +24,29 @@ public class TrainingController {
 
     @ApiOperation(value = "Get trainee trainings")
     @GetMapping("/trainees/{username}/trainings")
-    public ResponseEntity<List<TraineeTrainingResponseDTO>> getTraineeTrainings(@Valid @ModelAttribute CredentialsDTO credentials, @PathVariable @NotBlank String username, @Valid @ModelAttribute TraineeTrainingsFilterDTO filter) {
-        List<TraineeTrainingResponseDTO> response = trainingService.getTraineeTrainings(credentials, username, filter);
+    public ResponseEntity<List<TraineeTrainingResponseDTO>> getTraineeTrainings(@PathVariable @NotBlank String username, @Valid @ModelAttribute TraineeTrainingsFilterDTO filter) {
+        List<TraineeTrainingResponseDTO> response = trainingService.getTraineeTrainings(username, filter);
         return ResponseEntity.ok(response);
     }
 
     @ApiOperation(value = "Get trainer trainings")
     @GetMapping("/trainers/{username}/trainings")
-    public ResponseEntity<List<TrainerTrainingResponseDTO>> getTrainerTrainings(@Valid @ModelAttribute CredentialsDTO credentials, @PathVariable @NotBlank String username, @Valid TrainerTrainingsFilterDTO filter) {
-        List<TrainerTrainingResponseDTO> response = trainingService.getTrainerTrainings(credentials, username, filter);
+    public ResponseEntity<List<TrainerTrainingResponseDTO>> getTrainerTrainings(@PathVariable @NotBlank String username, @Valid @ModelAttribute TrainerTrainingsFilterDTO filter) {
+        List<TrainerTrainingResponseDTO> response = trainingService.getTrainerTrainings(username, filter);
         return ResponseEntity.ok(response);
     }
 
     @ApiOperation(value = "Add training")
-    @PostMapping("/trainings")
-    public ResponseEntity<Void> addTraining(@Valid @ModelAttribute CredentialsDTO credentials, @Valid @RequestBody NewTrainingRequestDTO request) {
-        trainingService.createTraining(credentials, request);
+    @PostMapping
+    public ResponseEntity<Void> addTraining(@Valid @RequestBody NewTrainingRequestDTO request) {
+        trainingService.createTraining(request);
         return ResponseEntity.ok().build();
     }
 
     @ApiOperation(value = "Get training types")
     @GetMapping("/types")
-    public ResponseEntity<List<TrainingTypeResponseDTO>> getTrainingTypes(@Valid @ModelAttribute CredentialsDTO credentials) {
-        List<TrainingTypeResponseDTO> response = trainingService.getTrainingTypes(credentials);
+    public ResponseEntity<List<TrainingTypeResponseDTO>> getTrainingTypes() {
+        List<TrainingTypeResponseDTO> response = trainingService.getTrainingTypes();
         return ResponseEntity.ok(response);
     }
-
 }

@@ -14,7 +14,10 @@ public class GymFacade {
     private final TrainingService trainingService;
     private final AuthenticationService authenticationService;
 
-    public GymFacade(TraineeService traineeService, TrainerService trainerService, TrainingService trainingService, AuthenticationService authenticationService) {
+    public GymFacade(TraineeService traineeService,
+                     TrainerService trainerService,
+                     TrainingService trainingService,
+                     AuthenticationService authenticationService) {
         this.traineeService = traineeService;
         this.trainerService = trainerService;
         this.trainingService = trainingService;
@@ -29,63 +32,63 @@ public class GymFacade {
         return trainerService.createTrainer(dto);
     }
 
-    public void authenticate(CredentialsDTO credentials) {
-        authenticationService.authenticate(credentials);
+    public String authenticate(CredentialsDTO credentials) {
+        return authenticationService.login(credentials);
     }
 
     public void changePassword(ChangePasswordRequestDTO request) {
         authenticationService.changePassword(request);
     }
 
-    public TraineeResponseDTO updateTrainee(CredentialsDTO credentials, UpdateTraineeRequestDTO dto) {
-        return traineeService.updateTrainee(credentials, dto);
+    public TraineeResponseDTO updateTrainee(UpdateTraineeRequestDTO dto) {
+        return traineeService.updateTrainee(dto);
     }
 
-    public TraineeResponseDTO getTraineeByUsername(CredentialsDTO credentials, String username) {
-        return traineeService.getTraineeByUsername(credentials, username);
+    public TraineeResponseDTO getTraineeByUsername(String username) {
+        return traineeService.getTraineeByUsername(username);
     }
 
-    public void changeTraineeActivationStatus(CredentialsDTO credentials, UpdateActivationStatusDTO dto) {
-        traineeService.changeTraineeActivationStatus(credentials, dto);
+    public void changeTraineeActivationStatus(UpdateActivationStatusDTO dto) {
+        traineeService.changeTraineeActivationStatus(dto);
     }
 
-    public void deleteTraineeByUsername(CredentialsDTO credentials, String username) {
-        traineeService.deleteTraineeByUsername(credentials, username);
+    public void deleteTraineeByUsername(String username) {
+        traineeService.deleteTraineeByUsername(username);
     }
 
-    public List<TrainerSummaryDTO> updateTraineeTrainers(CredentialsDTO credentials, UpdateTraineeTrainersRequestDTO dto) {
-        return traineeService.updateTraineeTrainers(credentials, dto);
+    public List<TrainerSummaryDTO> updateTraineeTrainers(UpdateTraineeTrainersRequestDTO dto) {
+        return traineeService.updateTraineeTrainers(dto);
     }
 
-    public TrainerResponseDTO updateTrainer(CredentialsDTO credentials, UpdateTrainerRequestDTO dto) {
-        return trainerService.updateTrainer(credentials, dto);
+    public TrainerResponseDTO updateTrainer(UpdateTrainerRequestDTO dto) {
+        return trainerService.updateTrainer(dto);
     }
 
-    public TrainerResponseDTO getTrainerByUsername(CredentialsDTO credentials, String username) {
-        return trainerService.getTrainerByUsername(credentials, username);
+    public TrainerResponseDTO getTrainerByUsername(String username) {
+        return trainerService.getTrainerByUsername(username);
     }
 
-    public void changeTrainerActivationStatus(CredentialsDTO credentials, UpdateActivationStatusDTO dto) {
-        trainerService.changeActivationStatus(credentials, dto);
+    public void changeTrainerActivationStatus(UpdateActivationStatusDTO dto) {
+        trainerService.changeActivationStatus(dto);
     }
 
-    public List<TrainerSummaryDTO> getTrainersNotAssignedToTrainee(CredentialsDTO credentials, String traineeUsername) {
-        return trainerService.getTrainersNotAssignedToTrainee(credentials, traineeUsername);
+    public List<TrainerSummaryDTO> getTrainersNotAssignedToTrainee(String traineeUsername) {
+        return trainerService.getTrainersNotAssignedToTrainee(traineeUsername);
     }
 
-    public void createTraining(CredentialsDTO trainerCredentials, NewTrainingRequestDTO dto) {
-        trainingService.createTraining(trainerCredentials, dto);
+    public void createTraining(NewTrainingRequestDTO dto) {
+        trainingService.createTraining(dto);
     }
 
-    public List<TraineeTrainingResponseDTO> getTraineeTrainings(CredentialsDTO traineeCredentials, String traineeUsername, TraineeTrainingsFilterDTO filter) {
-        return trainingService.getTraineeTrainings(traineeCredentials, traineeUsername, filter);
+    public List<TraineeTrainingResponseDTO> getTraineeTrainings(String traineeUsername, TraineeTrainingsFilterDTO filter) {
+        return trainingService.getTraineeTrainings(traineeUsername, filter);
     }
 
-    public List<TrainerTrainingResponseDTO> getTrainerTrainings(CredentialsDTO trainerCredentials, String trainerUsername, TrainerTrainingsFilterDTO filter) {
-        return trainingService.getTrainerTrainings(trainerCredentials, trainerUsername, filter);
+    public List<TrainerTrainingResponseDTO> getTrainerTrainings(String trainerUsername, TrainerTrainingsFilterDTO filter) {
+        return trainingService.getTrainerTrainings(trainerUsername, filter);
     }
 
-    public List<TrainingTypeResponseDTO> getTrainingTypes(CredentialsDTO credentials) {
-        return trainingService.getTrainingTypes(credentials);
+    public List<TrainingTypeResponseDTO> getTrainingTypes() {
+        return trainingService.getTrainingTypes();
     }
 }

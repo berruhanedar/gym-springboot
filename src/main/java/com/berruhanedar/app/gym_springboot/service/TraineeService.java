@@ -9,9 +9,9 @@ import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TraineeMapper;
 import com.berruhanedar.app.gym_springboot.util.CredentialGenerator;
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +26,6 @@ public class TraineeService {
     private TrainerDao trainerDao;
     private TraineeMapper traineeMapper;
     private CredentialGenerator credentialGenerator;
-    private AuthenticationService authenticationService;
 
     @Autowired
     public void setTraineeDao(TraineeDao traineeDao) {
@@ -48,11 +47,6 @@ public class TraineeService {
         this.credentialGenerator = credentialGenerator;
     }
 
-    @Autowired
-    public void setAuthenticationService(AuthenticationService authenticationService) {
-        this.authenticationService = authenticationService;
-    }
-
     @Transactional
     public RegistrationResponseDTO createTrainee(NewTraineeRequestDTO dto) {
         log.info("Creating trainee profile for {} {}", dto.getFirstName(), dto.getLastName());
@@ -66,20 +60,18 @@ public class TraineeService {
     }
 
     @Transactional(readOnly = true)
-    public TraineeResponseDTO getTraineeByUsername(CredentialsDTO credentials, String username) {
-        authenticationService.authenticate(credentials);
+    public TraineeResponseDTO getTraineeByUsername(String username) {
         log.debug("Selecting trainee profile. username={}", username);
         Trainee trainee = findTraineeByUsername(username);
-        validateTraineeOwnsProfile(credentials, trainee);
+        validateTraineeOwnsProfile(trainee);
         return traineeMapper.toDTO(trainee);
     }
 
     @Transactional
-    public TraineeResponseDTO updateTrainee(CredentialsDTO credentials, UpdateTraineeRequestDTO dto) {
-        authenticationService.authenticate(credentials);
+    public TraineeResponseDTO updateTrainee(UpdateTraineeRequestDTO dto) {
         log.info("Updating trainee profile. username={}", dto.getUsername());
         Trainee trainee = findTraineeByUsername(dto.getUsername());
-        validateTraineeOwnsProfile(credentials, trainee);
+        validateTraineeOwnsProfile(trainee);
         traineeMapper.updateFromDTO(dto, trainee);
         Trainee updated = traineeDao.update(trainee);
         log.info("Trainee profile updated successfully. username={}", updated.getUsername());
@@ -87,14 +79,14 @@ public class TraineeService {
     }
 
     @Transactional
-    public List<TrainerSummaryDTO> updateTraineeTrainers(CredentialsDTO credentials, UpdateTraineeTrainersRequestDTO dto) {
-        authenticationService.authenticate(credentials);
+    public List<TrainerSummaryDTO> updateTraineeTrainers(UpdateTraineeTrainersRequestDTO dto) {
         log.info("Updating trainee trainers list. username={}", dto.getTraineeUsername());
         Trainee trainee = findTraineeByUsername(dto.getTraineeUsername());
-        validateTraineeOwnsProfile(credentials, trainee);
+        validateTraineeOwnsProfile(trainee);
         List<Trainer> trainers = dto.getTrainers()
                 .stream()
-                .map(trainerDto -> trainerDao.findByUsername(trainerDto.getUsername()).orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + trainerDto.getUsername())))
+                .map(trainerDto -> trainerDao.findByUsername(trainerDto.getUsername())
+                        .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + trainerDto.getUsername())))
                 .toList();
         trainee.setTrainers(new HashSet<>(trainers));
         Trainee updated = traineeDao.update(trainee);
@@ -105,34 +97,33 @@ public class TraineeService {
     }
 
     @Transactional
-    public void changeTraineeActivationStatus(CredentialsDTO credentials, UpdateActivationStatusDTO dto) {
-        authenticationService.authenticate(credentials);
+    public void changeTraineeActivationStatus(UpdateActivationStatusDTO dto) {
         log.info("Updating trainee activation status. username={}, isActive={}", dto.getUsername(), dto.getIsActive());
         Trainee trainee = findTraineeByUsername(dto.getUsername());
-        validateTraineeOwnsProfile(credentials, trainee);
+        validateTraineeOwnsProfile(trainee);
         trainee.setIsActive(dto.getIsActive());
         traineeDao.update(trainee);
         log.info("Trainee activation status updated successfully. username={}, isActive={}", dto.getUsername(), dto.getIsActive());
     }
 
     @Transactional
-    public void deleteTraineeByUsername(CredentialsDTO credentials, String username) {
-        authenticationService.authenticate(credentials);
+    public void deleteTraineeByUsername(String username) {
         log.info("Deleting trainee profile. username={}", username);
         Trainee trainee = findTraineeByUsername(username);
-        validateTraineeOwnsProfile(credentials, trainee);
+        validateTraineeOwnsProfile(trainee);
         traineeDao.delete(trainee);
         log.info("Trainee profile deleted successfully. username={}", username);
     }
 
     private Trainee findTraineeByUsername(String username) {
-        return traineeDao.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + username));
+        return traineeDao.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + username));
     }
 
-    private void validateTraineeOwnsProfile(CredentialsDTO credentials, Trainee trainee) {
-        if (!trainee.getUsername().equals(credentials.getUsername())) {
+    private void validateTraineeOwnsProfile(Trainee trainee) {
+        String authenticatedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!trainee.getUsername().equals(authenticatedUsername)) {
             throw new AuthenticationException("Trainee is not authorized to access this profile.");
         }
     }
-
 }

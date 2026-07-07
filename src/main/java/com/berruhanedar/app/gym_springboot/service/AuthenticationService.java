@@ -16,6 +16,7 @@ public class AuthenticationService {
 
     private TraineeDao traineeDao;
     private TrainerDao trainerDao;
+    private JwtService jwtService;
 
     @Autowired
     public void setTraineeDao(TraineeDao traineeDao) {
@@ -27,16 +28,26 @@ public class AuthenticationService {
         this.trainerDao = trainerDao;
     }
 
+    @Autowired
+    public void setJwtService(JwtService jwtService) {
+        this.jwtService = jwtService;
+    }
+
+    @Transactional(readOnly = true)
+    public String login(CredentialsDTO credentials) {
+        authenticate(credentials);
+        return jwtService.generateToken(credentials.getUsername());
+    }
+
     @Transactional(readOnly = true)
     public void authenticate(CredentialsDTO credentials) {
-
         boolean authenticated =
                 traineeDao.findByUsername(credentials.getUsername())
-                        .filter(t -> t.getPassword().equals(credentials.getPassword()))
+                        .filter(trainee -> trainee.getPassword().equals(credentials.getPassword()))
                         .isPresent()
                         ||
                         trainerDao.findByUsername(credentials.getUsername())
-                                .filter(t -> t.getPassword().equals(credentials.getPassword()))
+                                .filter(trainer -> trainer.getPassword().equals(credentials.getPassword()))
                                 .isPresent();
 
         if (!authenticated) {
@@ -75,6 +86,7 @@ public class AuthenticationService {
         if (!currentPassword.equals(oldPassword)) {
             throw new AuthenticationException("Invalid username or password.");
         }
+
         passwordSetter.accept(newPassword);
         saveAction.run();
     }

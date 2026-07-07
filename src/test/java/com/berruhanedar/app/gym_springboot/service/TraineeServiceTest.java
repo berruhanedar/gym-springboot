@@ -294,9 +294,11 @@ class TraineeServiceTest {
     }
 
     private long countAssignedTrainers(String traineeUsername) {
-        return transactionTemplate.execute(status -> {
+        Long count = transactionTemplate.execute(status -> {
             Trainee trainee = traineeDao.findByUsername(traineeUsername).orElseThrow();
-            return trainee.getTrainers().size();
+            return Long.valueOf(trainee.getTrainers().size());
         });
+
+        return count != null ? count : 0L;
     }
 }

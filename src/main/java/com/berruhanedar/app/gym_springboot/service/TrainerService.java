@@ -9,9 +9,9 @@ import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TrainerMapper;
 import com.berruhanedar.app.gym_springboot.util.CredentialGenerator;
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +25,6 @@ public class TrainerService {
     private TrainingTypeDao trainingTypeDao;
     private TrainerMapper trainerMapper;
     private CredentialGenerator credentialGenerator;
-    private AuthenticationService authenticationService;
 
     @Autowired
     public void setTrainerDao(TrainerDao trainerDao) {
@@ -47,15 +46,10 @@ public class TrainerService {
         this.credentialGenerator = credentialGenerator;
     }
 
-    @Autowired
-    public void setAuthenticationService(AuthenticationService authenticationService) {
-        this.authenticationService = authenticationService;
-    }
-
     @Transactional
     public RegistrationResponseDTO createTrainer(NewTrainerRequestDTO dto) {
         log.info("Creating trainer profile for {} {}", dto.getFirstName(), dto.getLastName());
-        TrainingType specialization = trainingTypeDao.findByName(dto.getSpecializationName()).orElseThrow(() -> new EntityNotFoundException("Training type not found: " + dto.getSpecializationName()));
+        TrainingType specialization = findTrainingTypeByName(dto.getSpecializationName());
         Trainer trainer = trainerMapper.toEntity(dto);
         trainer.setSpecialization(specialization);
         trainer.setUsername(credentialGenerator.generateUsername(dto.getFirstName(), dto.getLastName()));
@@ -67,20 +61,18 @@ public class TrainerService {
     }
 
     @Transactional(readOnly = true)
-    public TrainerResponseDTO getTrainerByUsername(CredentialsDTO credentials, String username) {
-        authenticationService.authenticate(credentials);
+    public TrainerResponseDTO getTrainerByUsername(String username) {
         log.debug("Selecting trainer profile. username={}", username);
         Trainer trainer = findTrainerByUsername(username);
-        validateTrainerOwnsProfile(credentials, trainer);
+        validateTrainerOwnsProfile(trainer);
         return trainerMapper.toDTO(trainer);
     }
 
     @Transactional
-    public TrainerResponseDTO updateTrainer(CredentialsDTO credentials, UpdateTrainerRequestDTO dto) {
-        authenticationService.authenticate(credentials);
+    public TrainerResponseDTO updateTrainer(UpdateTrainerRequestDTO dto) {
         log.info("Updating trainer profile. username={}", dto.getUsername());
         Trainer trainer = findTrainerByUsername(dto.getUsername());
-        validateTrainerOwnsProfile(credentials, trainer);
+        validateTrainerOwnsProfile(trainer);
         trainerMapper.updateFromDTO(dto, trainer);
         Trainer updated = trainerDao.update(trainer);
         log.info("Trainer profile updated successfully. username={}", updated.getUsername());
@@ -88,20 +80,19 @@ public class TrainerService {
     }
 
     @Transactional
-    public void changeActivationStatus(CredentialsDTO credentials,UpdateActivationStatusDTO dto) {
-        authenticationService.authenticate(credentials);
+    public void changeActivationStatus(UpdateActivationStatusDTO dto) {
         log.info("Updating trainer activation status. username={}, isActive={}", dto.getUsername(), dto.getIsActive());
         Trainer trainer = findTrainerByUsername(dto.getUsername());
-        validateTrainerOwnsProfile(credentials, trainer);
+        validateTrainerOwnsProfile(trainer);
         trainer.setIsActive(dto.getIsActive());
         trainerDao.update(trainer);
         log.info("Trainer activation status updated successfully. username={}, isActive={}", dto.getUsername(), dto.getIsActive());
     }
 
     @Transactional(readOnly = true)
-    public List<TrainerSummaryDTO> getTrainersNotAssignedToTrainee(CredentialsDTO credentials, String traineeUsername) {
-        authenticationService.authenticate(credentials);
+    public List<TrainerSummaryDTO> getTrainersNotAssignedToTrainee(String traineeUsername) {
         log.info("Getting active trainers not assigned to trainee. traineeUsername={}", traineeUsername);
+
         return trainerDao.findTrainersNotAssignedToTrainee(traineeUsername)
                 .stream()
                 .filter(Trainer::getIsActive)
@@ -110,20 +101,17 @@ public class TrainerService {
     }
 
     private Trainer findTrainerByUsername(String username) {
-        return trainerDao.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + username));
+        return trainerDao.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + username));
     }
 
-    private void validateTrainerOwnsProfile(CredentialsDTO credentials, Trainer trainer) {
-        if (!trainer.getUsername().equals(credentials.getUsername())) {
+    private void validateTrainerOwnsProfile(Trainer trainer) {
+        String authenticatedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!trainer.getUsername().equals(authenticatedUsername)) {
             throw new AuthenticationException("Trainer is not authorized to access this profile.");
         }
     }
 
     private TrainingType findTrainingTypeByName(String specializationName) {
-        return trainingTypeDao.findByName(specializationName)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Training type not found: " + specializationName));
+        return trainingTypeDao.findByName(specializationName).orElseThrow(() -> new EntityNotFoundException("Training type not found: " + specializationName));
     }
-
 }
