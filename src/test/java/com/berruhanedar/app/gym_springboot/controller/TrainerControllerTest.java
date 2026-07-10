@@ -115,6 +115,7 @@ class TrainerControllerTest {
         request.setUsername("Daniel.Anderson");
         request.setFirstName("Dan");
         request.setLastName("Anderson");
+        request.setSpecializationName("Boxing");
         request.setIsActive(true);
 
         TrainerResponseDTO response = new TrainerResponseDTO();
@@ -137,9 +138,14 @@ class TrainerControllerTest {
 
         verify(trainerService).updateTrainer(requestCaptor.capture());
 
-        assertThat(requestCaptor.getValue().getUsername()).isEqualTo("Daniel.Anderson");
-        assertThat(requestCaptor.getValue().getFirstName()).isEqualTo("Dan");
-        assertThat(requestCaptor.getValue().getIsActive()).isTrue();
+        assertThat(requestCaptor.getValue().getUsername())
+                .isEqualTo("Daniel.Anderson");
+        assertThat(requestCaptor.getValue().getFirstName())
+                .isEqualTo("Dan");
+        assertThat(requestCaptor.getValue().getSpecializationName())
+                .isEqualTo("Boxing");
+        assertThat(requestCaptor.getValue().getIsActive())
+                .isTrue();
     }
 
     @Test

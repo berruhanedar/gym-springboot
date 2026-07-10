@@ -8,7 +8,8 @@ import com.berruhanedar.app.gym_springboot.entity.TrainingType;
 import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.facade.GymFacade;
-import org.hibernate.SessionFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,8 +40,8 @@ class TraineeServiceTest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
-    @Autowired
-    private SessionFactory sessionFactory;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @AfterEach
     void tearDown() {
@@ -274,22 +275,29 @@ class TraineeServiceTest {
 
     private TrainingType ensureTrainingType(String name) {
         return transactionTemplate.execute(status -> {
-            var session = sessionFactory.getCurrentSession();
-
-            TrainingType existing = session.createQuery(
-                            "FROM TrainingType t WHERE LOWER(t.trainingTypeName) = LOWER(:name)",
-                            TrainingType.class)
+            List<TrainingType> existingTypes = entityManager.createQuery(
+                            """
+                                    SELECT t
+                                    FROM TrainingType t
+                                    WHERE LOWER(t.trainingTypeName) = LOWER(:name)
+                                    """,
+                            TrainingType.class
+                    )
                     .setParameter("name", name)
-                    .uniqueResult();
+                    .setMaxResults(1)
+                    .getResultList();
 
-            if (existing != null) {
-                return existing;
+            if (!existingTypes.isEmpty()) {
+                return existingTypes.get(0);
             }
 
-            TrainingType type = new TrainingType();
-            type.setTrainingTypeName(name);
-            session.persist(type);
-            return type;
+            TrainingType trainingType = new TrainingType();
+            trainingType.setTrainingTypeName(name);
+
+            entityManager.persist(trainingType);
+            entityManager.flush();
+
+            return trainingType;
         });
     }
 

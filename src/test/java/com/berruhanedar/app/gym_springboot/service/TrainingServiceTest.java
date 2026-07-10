@@ -1,12 +1,21 @@
 package com.berruhanedar.app.gym_springboot.service;
 
 import com.berruhanedar.app.gym_springboot.config.AppConfig;
-import com.berruhanedar.app.gym_springboot.dto.*;
+import com.berruhanedar.app.gym_springboot.dto.NewTraineeRequestDTO;
+import com.berruhanedar.app.gym_springboot.dto.NewTrainerRequestDTO;
+import com.berruhanedar.app.gym_springboot.dto.NewTrainingRequestDTO;
+import com.berruhanedar.app.gym_springboot.dto.RegistrationResponseDTO;
+import com.berruhanedar.app.gym_springboot.dto.TraineeTrainingResponseDTO;
+import com.berruhanedar.app.gym_springboot.dto.TraineeTrainingsFilterDTO;
+import com.berruhanedar.app.gym_springboot.dto.TrainerTrainingResponseDTO;
+import com.berruhanedar.app.gym_springboot.dto.TrainerTrainingsFilterDTO;
+import com.berruhanedar.app.gym_springboot.dto.TrainingTypeResponseDTO;
 import com.berruhanedar.app.gym_springboot.entity.TrainingType;
 import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.facade.GymFacade;
-import org.hibernate.SessionFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +30,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = AppConfig.class)
@@ -34,8 +44,8 @@ class TrainingServiceTest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
-    @Autowired
-    private SessionFactory sessionFactory;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @AfterEach
     void tearDown() {
@@ -86,20 +96,35 @@ class TrainingServiceTest {
 
         authenticateAs(yogaTrainer.getUsername());
         gymFacade.createTraining(
-                newTraining(trainee.getUsername(), yogaTrainer.getUsername(), "Yoga Match",
-                        LocalDate.now().plusDays(2), 50)
+                newTraining(
+                        trainee.getUsername(),
+                        yogaTrainer.getUsername(),
+                        "Yoga Match",
+                        LocalDate.now().plusDays(2),
+                        50
+                )
         );
 
         authenticateAs(cardioTrainer.getUsername());
         gymFacade.createTraining(
-                newTraining(trainee.getUsername(), cardioTrainer.getUsername(), "Cardio Out",
-                        LocalDate.now().plusDays(2), 30)
+                newTraining(
+                        trainee.getUsername(),
+                        cardioTrainer.getUsername(),
+                        "Cardio Out",
+                        LocalDate.now().plusDays(2),
+                        30
+                )
         );
 
         authenticateAs(yogaTrainer.getUsername());
         gymFacade.createTraining(
-                newTraining(trainee.getUsername(), yogaTrainer.getUsername(), "Old Yoga",
-                        LocalDate.now().plusDays(10), 40)
+                newTraining(
+                        trainee.getUsername(),
+                        yogaTrainer.getUsername(),
+                        "Old Yoga",
+                        LocalDate.now().plusDays(10),
+                        40
+                )
         );
 
         authenticateAs(trainee.getUsername());
@@ -129,18 +154,33 @@ class TrainingServiceTest {
         authenticateAs(trainer.getUsername());
 
         gymFacade.createTraining(
-                newTraining(expectedTrainee.getUsername(), trainer.getUsername(), "Pilates Match",
-                        LocalDate.now().plusDays(4), 55)
+                newTraining(
+                        expectedTrainee.getUsername(),
+                        trainer.getUsername(),
+                        "Pilates Match",
+                        LocalDate.now().plusDays(4),
+                        55
+                )
         );
 
         gymFacade.createTraining(
-                newTraining(otherTrainee.getUsername(), trainer.getUsername(), "Pilates Other",
-                        LocalDate.now().plusDays(4), 35)
+                newTraining(
+                        otherTrainee.getUsername(),
+                        trainer.getUsername(),
+                        "Pilates Other",
+                        LocalDate.now().plusDays(4),
+                        35
+                )
         );
 
         gymFacade.createTraining(
-                newTraining(expectedTrainee.getUsername(), trainer.getUsername(), "Pilates Later",
-                        LocalDate.now().plusDays(20), 35)
+                newTraining(
+                        expectedTrainee.getUsername(),
+                        trainer.getUsername(),
+                        "Pilates Later",
+                        LocalDate.now().plusDays(20),
+                        35
+                )
         );
 
         List<TrainerTrainingResponseDTO> result = gymFacade.getTrainerTrainings(
@@ -167,13 +207,23 @@ class TrainingServiceTest {
         authenticateAs(trainer.getUsername());
 
         gymFacade.createTraining(
-                newTraining(trainee.getUsername(), trainer.getUsername(), "Stretch One",
-                        LocalDate.now().plusDays(1), 20)
+                newTraining(
+                        trainee.getUsername(),
+                        trainer.getUsername(),
+                        "Stretch One",
+                        LocalDate.now().plusDays(1),
+                        20
+                )
         );
 
         gymFacade.createTraining(
-                newTraining(trainee.getUsername(), trainer.getUsername(), "Stretch Two",
-                        LocalDate.now().plusDays(2), 25)
+                newTraining(
+                        trainee.getUsername(),
+                        trainer.getUsername(),
+                        "Stretch Two",
+                        LocalDate.now().plusDays(2),
+                        25
+                )
         );
 
         authenticateAs(trainee.getUsername());
@@ -202,7 +252,10 @@ class TrainingServiceTest {
                                 trainer.getUsername(),
                                 "Training",
                                 LocalDate.now().plusDays(1),
-                                60)))
+                                60
+                        )
+                )
+        )
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("Trainee not found");
     }
@@ -223,7 +276,10 @@ class TrainingServiceTest {
                                 "missing.trainer",
                                 "Training",
                                 LocalDate.now().plusDays(1),
-                                60)))
+                                60
+                        )
+                )
+        )
                 .isInstanceOf(AuthenticationException.class)
                 .hasMessageContaining("Trainer is not authorized");
     }
@@ -237,23 +293,31 @@ class TrainingServiceTest {
 
         authenticateAs("another.user");
 
-        assertThatThrownBy(() -> gymFacade.createTraining(
-                newTraining(trainee.getUsername(), trainer.getUsername(), "Auth Fail",
-                        LocalDate.now().plusDays(1), 45)
-        ))
-                .isInstanceOf(AuthenticationException.class);
+        assertThatThrownBy(() ->
+                gymFacade.createTraining(
+                        newTraining(
+                                trainee.getUsername(),
+                                trainer.getUsername(),
+                                "Auth Fail",
+                                LocalDate.now().plusDays(1),
+                                45
+                        )
+                )
+        ).isInstanceOf(AuthenticationException.class);
 
-        assertThatThrownBy(() -> gymFacade.getTraineeTrainings(
-                trainee.getUsername(),
-                traineeFilter(null, null, null, null)
-        ))
-                .isInstanceOf(AuthenticationException.class);
+        assertThatThrownBy(() ->
+                gymFacade.getTraineeTrainings(
+                        trainee.getUsername(),
+                        traineeFilter(null, null, null, null)
+                )
+        ).isInstanceOf(AuthenticationException.class);
 
-        assertThatThrownBy(() -> gymFacade.getTrainerTrainings(
-                trainer.getUsername(),
-                trainerFilter(null, null, null)
-        ))
-                .isInstanceOf(AuthenticationException.class);
+        assertThatThrownBy(() ->
+                gymFacade.getTrainerTrainings(
+                        trainer.getUsername(),
+                        trainerFilter(null, null, null)
+                )
+        ).isInstanceOf(AuthenticationException.class);
     }
 
     @Test
@@ -270,11 +334,12 @@ class TrainingServiceTest {
     }
 
     private RegistrationResponseDTO createTrainee(String firstName, String lastName) {
-        NewTraineeRequestDTO dto = new NewTraineeRequestDTO();
-        dto.setFirstName(firstName);
-        dto.setLastName(lastName);
-        dto.setDateOfBirth(LocalDate.of(2000, 1, 1));
-        return gymFacade.createTrainee(dto);
+        NewTraineeRequestDTO request = new NewTraineeRequestDTO();
+        request.setFirstName(firstName);
+        request.setLastName(lastName);
+        request.setDateOfBirth(LocalDate.of(2000, 1, 1));
+
+        return gymFacade.createTrainee(request);
     }
 
     private RegistrationResponseDTO createTrainer(
@@ -282,27 +347,29 @@ class TrainingServiceTest {
             String lastName,
             TrainingType specialization) {
 
-        NewTrainerRequestDTO dto = new NewTrainerRequestDTO();
-        dto.setFirstName(firstName);
-        dto.setLastName(lastName);
-        dto.setSpecializationName(specialization.getTrainingTypeName());
-        return gymFacade.createTrainer(dto);
+        NewTrainerRequestDTO request = new NewTrainerRequestDTO();
+        request.setFirstName(firstName);
+        request.setLastName(lastName);
+        request.setSpecializationName(specialization.getTrainingTypeName());
+
+        return gymFacade.createTrainer(request);
     }
 
     private NewTrainingRequestDTO newTraining(
             String traineeUsername,
             String trainerUsername,
-            String name,
-            LocalDate date,
-            Integer duration) {
+            String trainingName,
+            LocalDate trainingDate,
+            Integer trainingDuration) {
 
-        NewTrainingRequestDTO dto = new NewTrainingRequestDTO();
-        dto.setTraineeUsername(traineeUsername);
-        dto.setTrainerUsername(trainerUsername);
-        dto.setTrainingName(name);
-        dto.setTrainingDate(date);
-        dto.setTrainingDuration(duration);
-        return dto;
+        NewTrainingRequestDTO request = new NewTrainingRequestDTO();
+        request.setTraineeUsername(traineeUsername);
+        request.setTrainerUsername(trainerUsername);
+        request.setTrainingName(trainingName);
+        request.setTrainingDate(trainingDate);
+        request.setTrainingDuration(trainingDuration);
+
+        return request;
     }
 
     private TraineeTrainingsFilterDTO traineeFilter(
@@ -316,6 +383,7 @@ class TrainingServiceTest {
         filter.setPeriodTo(periodTo);
         filter.setTrainerName(trainerName);
         filter.setTrainingType(trainingType);
+
         return filter;
     }
 
@@ -328,6 +396,7 @@ class TrainingServiceTest {
         filter.setPeriodFrom(periodFrom);
         filter.setPeriodTo(periodTo);
         filter.setTraineeName(traineeName);
+
         return filter;
     }
 
@@ -340,22 +409,29 @@ class TrainingServiceTest {
 
     private TrainingType ensureTrainingType(String name) {
         return transactionTemplate.execute(status -> {
-            var session = sessionFactory.getCurrentSession();
-
-            TrainingType existing = session.createQuery(
-                            "FROM TrainingType t WHERE LOWER(t.trainingTypeName) = LOWER(:name)",
-                            TrainingType.class)
+            List<TrainingType> existingTypes = entityManager.createQuery(
+                            """
+                            SELECT t
+                            FROM TrainingType t
+                            WHERE LOWER(t.trainingTypeName) = LOWER(:name)
+                            """,
+                            TrainingType.class
+                    )
                     .setParameter("name", name)
-                    .uniqueResult();
+                    .setMaxResults(1)
+                    .getResultList();
 
-            if (existing != null) {
-                return existing;
+            if (!existingTypes.isEmpty()) {
+                return existingTypes.get(0);
             }
 
-            TrainingType type = new TrainingType();
-            type.setTrainingTypeName(name);
-            session.persist(type);
-            return type;
+            TrainingType trainingType = new TrainingType();
+            trainingType.setTrainingTypeName(name);
+
+            entityManager.persist(trainingType);
+            entityManager.flush();
+
+            return trainingType;
         });
     }
 }
