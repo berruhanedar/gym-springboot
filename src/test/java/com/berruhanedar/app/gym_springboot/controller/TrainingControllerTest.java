@@ -120,11 +120,13 @@ class TrainingControllerTest {
 
     @Test
     void shouldAddTraining() throws Exception {
+        LocalDate futureDate = LocalDate.now().plusDays(1);
+
         NewTrainingRequestDTO request = new NewTrainingRequestDTO();
         request.setTraineeUsername("John.Doe");
         request.setTrainerUsername("Daniel.Anderson");
         request.setTrainingName("Morning Yoga");
-        request.setTrainingDate(LocalDate.of(2026, 7, 10));
+        request.setTrainingDate(futureDate);
         request.setTrainingDuration(60);
 
         mockMvc.perform(post("/api/trainings")
@@ -137,11 +139,16 @@ class TrainingControllerTest {
 
         verify(trainingService).createTraining(requestCaptor.capture());
 
-        assertThat(requestCaptor.getValue().getTraineeUsername()).isEqualTo("John.Doe");
-        assertThat(requestCaptor.getValue().getTrainerUsername()).isEqualTo("Daniel.Anderson");
-        assertThat(requestCaptor.getValue().getTrainingName()).isEqualTo("Morning Yoga");
-        assertThat(requestCaptor.getValue().getTrainingDate()).isEqualTo(LocalDate.of(2026, 7, 10));
-        assertThat(requestCaptor.getValue().getTrainingDuration()).isEqualTo(60);
+        assertThat(requestCaptor.getValue().getTraineeUsername())
+                .isEqualTo("John.Doe");
+        assertThat(requestCaptor.getValue().getTrainerUsername())
+                .isEqualTo("Daniel.Anderson");
+        assertThat(requestCaptor.getValue().getTrainingName())
+                .isEqualTo("Morning Yoga");
+        assertThat(requestCaptor.getValue().getTrainingDate())
+                .isEqualTo(futureDate);
+        assertThat(requestCaptor.getValue().getTrainingDuration())
+                .isEqualTo(60);
     }
 
     @Test
