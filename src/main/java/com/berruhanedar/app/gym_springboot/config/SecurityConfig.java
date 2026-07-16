@@ -40,7 +40,7 @@ public class SecurityConfig {
                                 "/webjars/**"
                         ).permitAll()
 
-                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
 
                         .requestMatchers("/actuator/**").authenticated()
 

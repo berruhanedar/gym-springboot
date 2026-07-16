@@ -91,4 +91,10 @@ public class TrainerDao {
                 .setParameter("ids", ids)
                 .getResultList();
     }
+
+    public long count() {
+        return entityManager.createQuery("SELECT COUNT(e) FROM Trainer e", Long.class)
+                .getSingleResult();
+    }
+
 }

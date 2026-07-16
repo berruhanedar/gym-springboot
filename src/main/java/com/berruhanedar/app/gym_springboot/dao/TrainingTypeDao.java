@@ -36,4 +36,9 @@ public class TrainingTypeDao {
                         """, TrainingType.class)
                 .getResultList();
     }
+
+    public long count() {
+        return entityManager.createQuery("SELECT COUNT(e) FROM TrainingType e", Long.class)
+                .getSingleResult();
+    }
 }

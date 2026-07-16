@@ -7,6 +7,7 @@ import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TrainingMapper;
 import com.berruhanedar.app.gym_springboot.mapper.TrainingTypeMapper;
+import com.berruhanedar.app.gym_springboot.monitoring.GymMetrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,6 +26,9 @@ public class TrainingService {
     private TrainingTypeDao trainingTypeDao;
     private TrainingMapper trainingMapper;
     private TrainingTypeMapper trainingTypeMapper;
+
+    @Autowired(required = false)
+    private GymMetrics gymMetrics;
 
     @Autowired
     public void setTrainingTypeMapper(TrainingTypeMapper trainingTypeMapper) {
@@ -95,6 +99,9 @@ public class TrainingService {
         training.setTrainingType(trainer.getSpecialization());
         Training saved = trainingDao.save(training);
         log.info("Training created successfully. id={}", saved.getId());
+        if (gymMetrics != null) {
+            gymMetrics.recordTrainingCreated();
+        }
     }
 
     @Transactional(readOnly = true)

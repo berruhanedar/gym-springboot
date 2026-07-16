@@ -5,6 +5,7 @@ import com.berruhanedar.app.gym_springboot.dao.TrainerDao;
 import com.berruhanedar.app.gym_springboot.dto.ChangePasswordRequestDTO;
 import com.berruhanedar.app.gym_springboot.dto.CredentialsDTO;
 import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
+import com.berruhanedar.app.gym_springboot.monitoring.GymMetrics;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,9 @@ public class AuthenticationService {
     private TraineeDao traineeDao;
     private TrainerDao trainerDao;
     private JwtService jwtService;
+
+    @Autowired(required = false)
+    private GymMetrics gymMetrics;
 
     @Autowired
     public void setTraineeDao(TraineeDao traineeDao) {
@@ -35,8 +39,18 @@ public class AuthenticationService {
 
     @Transactional(readOnly = true)
     public String login(CredentialsDTO credentials) {
-        authenticate(credentials);
-        return jwtService.generateToken(credentials.getUsername());
+        try {
+            authenticate(credentials);
+            if (gymMetrics != null) {
+                gymMetrics.recordSuccessfulLogin();
+            }
+            return jwtService.generateToken(credentials.getUsername());
+        } catch (AuthenticationException exception) {
+            if (gymMetrics != null) {
+                gymMetrics.recordFailedLogin();
+            }
+            throw exception;
+        }
     }
 
     @Transactional(readOnly = true)

@@ -8,6 +8,7 @@ import com.berruhanedar.app.gym_springboot.entity.TrainingType;
 import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TrainerMapper;
+import com.berruhanedar.app.gym_springboot.monitoring.GymMetrics;
 import com.berruhanedar.app.gym_springboot.util.CredentialGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,9 @@ public class TrainerService {
     private TrainingTypeDao trainingTypeDao;
     private TrainerMapper trainerMapper;
     private CredentialGenerator credentialGenerator;
+
+    @Autowired(required = false)
+    private GymMetrics gymMetrics;
 
     @Autowired
     public void setTrainerDao(TrainerDao trainerDao) {
@@ -57,6 +61,9 @@ public class TrainerService {
         trainer.setIsActive(true);
         Trainer saved = trainerDao.save(trainer);
         log.info("Trainer profile created successfully. id={}", saved.getId());
+        if (gymMetrics != null) {
+            gymMetrics.recordTrainerRegistration();
+        }
         return trainerMapper.toRegistrationResponseDTO(saved);
     }
 

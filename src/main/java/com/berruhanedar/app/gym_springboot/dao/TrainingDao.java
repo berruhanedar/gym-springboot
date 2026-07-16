@@ -141,4 +141,9 @@ public class TrainingDao {
 
         return query.getResultList();
     }
+
+    public long count() {
+        return entityManager.createQuery("SELECT COUNT(e) FROM Training e", Long.class)
+                .getSingleResult();
+    }
 }

@@ -51,4 +51,10 @@ public class TraineeDao {
                         String.class)
                 .getResultList();
     }
+
+    public long count() {
+        return entityManager.createQuery("SELECT COUNT(e) FROM Trainee e", Long.class)
+                .getSingleResult();
+    }
+
 }
