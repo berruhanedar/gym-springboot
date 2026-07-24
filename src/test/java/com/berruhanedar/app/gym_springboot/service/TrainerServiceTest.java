@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -40,6 +41,9 @@ class TrainerServiceTest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -63,6 +67,10 @@ class TrainerServiceTest {
 
         assertThat(profile.getIsActive()).isTrue();
         assertThat(profile.getSpecializationName()).isEqualTo("Boxing");
+
+        Trainer savedEntity = findTrainerEntity(response.getUsername());
+        assertThat(savedEntity.getPassword()).isNotEqualTo(response.getPassword());
+        assertThat(passwordEncoder.matches(response.getPassword(), savedEntity.getPassword())).isTrue();
     }
 
     @Test
@@ -81,18 +89,42 @@ class TrainerServiceTest {
     @Test
     void shouldUpdateTrainerWithoutChangingUsernamePasswordOrSpecialization() {
         TrainingType fitness = ensureTrainingType("Fitness");
-        RegistrationResponseDTO saved = createTrainer("Thomas", "White", fitness);
+
+        RegistrationResponseDTO saved =
+                createTrainer("Thomas", "White", fitness);
+
+        String passwordHashBeforeUpdate =
+                transactionTemplate.execute(status -> {
+                    Trainer trainer = trainerDao
+                            .findByUsername(saved.getUsername())
+                            .orElseThrow();
+
+                    return trainer.getPassword();
+                });
+
+        String specializationBeforeUpdate =
+                transactionTemplate.execute(status -> {
+                    Trainer trainer = trainerDao
+                            .findByUsername(saved.getUsername())
+                            .orElseThrow();
+
+                    return trainer.getSpecialization()
+                            .getTrainingTypeName();
+                });
 
         authenticateAs(saved.getUsername());
 
-        UpdateTrainerRequestDTO update = new UpdateTrainerRequestDTO();
+        UpdateTrainerRequestDTO update =
+                new UpdateTrainerRequestDTO();
+
         update.setUsername(saved.getUsername());
         update.setFirstName("Tom");
         update.setLastName("Black");
         update.setSpecializationName("Fitness");
         update.setIsActive(false);
 
-        TrainerResponseDTO updated = gymFacade.updateTrainer(update);
+        TrainerResponseDTO updated =
+                gymFacade.updateTrainer(update);
 
         assertThat(updated.getFirstName()).isEqualTo("Tom");
         assertThat(updated.getLastName()).isEqualTo("Black");
@@ -100,8 +132,37 @@ class TrainerServiceTest {
         assertThat(updated.getSpecializationName()).isEqualTo("Fitness");
         assertThat(updated.getIsActive()).isFalse();
 
-        Trainer entity = findTrainerEntity(saved.getUsername());
-        assertThat(entity.getPassword()).isEqualTo(saved.getPassword());
+        String passwordHashAfterUpdate =
+                transactionTemplate.execute(status -> {
+                    Trainer trainer = trainerDao
+                            .findByUsername(saved.getUsername())
+                            .orElseThrow();
+
+                    return trainer.getPassword();
+                });
+
+        String specializationAfterUpdate =
+                transactionTemplate.execute(status -> {
+                    Trainer trainer = trainerDao
+                            .findByUsername(saved.getUsername())
+                            .orElseThrow();
+
+                    return trainer.getSpecialization()
+                            .getTrainingTypeName();
+                });
+
+        assertThat(passwordHashAfterUpdate)
+                .isEqualTo(passwordHashBeforeUpdate);
+
+        assertThat(
+                passwordEncoder.matches(
+                        saved.getPassword(),
+                        passwordHashAfterUpdate
+                )
+        ).isTrue();
+
+        assertThat(specializationAfterUpdate)
+                .isEqualTo(specializationBeforeUpdate);
     }
 
     @Test

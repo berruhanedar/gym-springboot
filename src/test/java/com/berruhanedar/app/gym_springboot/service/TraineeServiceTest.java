@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -40,6 +41,9 @@ class TraineeServiceTest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -59,15 +63,26 @@ class TraineeServiceTest {
         Trainee savedEntity = findTraineeEntity(response.getUsername());
         assertThat(savedEntity.getIsActive()).isTrue();
         assertThat(savedEntity.getAddress()).isEqualTo("London");
+        assertThat(savedEntity.getPassword()).isNotEqualTo(response.getPassword());
+        assertThat(passwordEncoder.matches(response.getPassword(), savedEntity.getPassword())).isTrue();
     }
 
     @Test
     void shouldUpdateTraineeWithoutChangingUsernameOrPassword() {
-        RegistrationResponseDTO saved = createTrainee("Emily", "Johnson", "Old Address");
+        RegistrationResponseDTO saved =
+                createTrainee("Emily", "Johnson", "Old Address");
+
+        Trainee beforeUpdate =
+                findTraineeEntity(saved.getUsername());
+
+        String passwordHashBeforeUpdate =
+                beforeUpdate.getPassword();
 
         authenticateAs(saved.getUsername());
 
-        UpdateTraineeRequestDTO update = new UpdateTraineeRequestDTO();
+        UpdateTraineeRequestDTO update =
+                new UpdateTraineeRequestDTO();
+
         update.setUsername(saved.getUsername());
         update.setFirstName("Emma");
         update.setLastName("Stone");
@@ -75,16 +90,39 @@ class TraineeServiceTest {
         update.setAddress("New York");
         update.setIsActive(false);
 
-        TraineeResponseDTO updated = gymFacade.updateTrainee(update);
+        TraineeResponseDTO updated =
+                gymFacade.updateTrainee(update);
 
-        assertThat(updated.getFirstName()).isEqualTo("Emma");
-        assertThat(updated.getLastName()).isEqualTo("Stone");
-        assertThat(updated.getUsername()).isEqualTo(saved.getUsername());
-        assertThat(updated.getIsActive()).isFalse();
-        assertThat(updated.getAddress()).isEqualTo("New York");
+        assertThat(updated.getFirstName())
+                .isEqualTo("Emma");
 
-        Trainee entity = findTraineeEntity(saved.getUsername());
-        assertThat(entity.getPassword()).isEqualTo(saved.getPassword());
+        assertThat(updated.getLastName())
+                .isEqualTo("Stone");
+
+        assertThat(updated.getUsername())
+                .isEqualTo(saved.getUsername());
+
+        assertThat(updated.getIsActive())
+                .isFalse();
+
+        assertThat(updated.getAddress())
+                .isEqualTo("New York");
+
+        Trainee entity =
+                findTraineeEntity(saved.getUsername());
+
+        assertThat(entity.getUsername())
+                .isEqualTo(saved.getUsername());
+
+        assertThat(entity.getPassword())
+                .isEqualTo(passwordHashBeforeUpdate);
+
+        assertThat(
+                passwordEncoder.matches(
+                        saved.getPassword(),
+                        entity.getPassword()
+                )
+        ).isTrue();
     }
 
     @Test

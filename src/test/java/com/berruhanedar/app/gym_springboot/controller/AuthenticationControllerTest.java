@@ -116,6 +116,15 @@ class AuthenticationControllerTest {
     }
 
     @Test
+    void shouldLogoutSuccessfully() throws Exception {
+        mockMvc.perform(post("/api/logout")
+                        .header("Authorization", "Bearer jwt-token"))
+                .andExpect(status().isNoContent());
+
+        verify(authenticationService).logout("Bearer jwt-token");
+    }
+
+    @Test
     void shouldReturnBadRequestWhenChangePasswordRequestIsInvalid() throws Exception {
         ChangePasswordRequestDTO request = new ChangePasswordRequestDTO();
         request.setUsername("John.Doe");
