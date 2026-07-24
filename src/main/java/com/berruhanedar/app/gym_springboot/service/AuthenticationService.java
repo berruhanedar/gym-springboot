@@ -4,8 +4,10 @@ import com.berruhanedar.app.gym_springboot.dao.TraineeDao;
 import com.berruhanedar.app.gym_springboot.dao.TrainerDao;
 import com.berruhanedar.app.gym_springboot.dto.ChangePasswordRequestDTO;
 import com.berruhanedar.app.gym_springboot.dto.CredentialsDTO;
+import com.berruhanedar.app.gym_springboot.exception.AccountTemporarilyBlockedException;
 import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.monitoring.GymMetrics;
+import com.berruhanedar.app.gym_springboot.security.LoginAttemptService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,8 +25,7 @@ public class AuthenticationService {
     private JwtService jwtService;
     private PasswordEncoder passwordEncoder;
     private AuthenticationManager authenticationManager;
-
-    @Autowired(required = false)
+    private LoginAttemptService loginAttemptService;
     private GymMetrics gymMetrics;
 
     @Autowired
@@ -52,18 +53,30 @@ public class AuthenticationService {
         this.authenticationManager = authenticationManager;
     }
 
+    @Autowired
+    public void setLoginAttemptService(LoginAttemptService loginAttemptService) {
+        this.loginAttemptService = loginAttemptService;
+    }
+
+    @Autowired
+    public void setGymMetrics(GymMetrics gymMetrics) {
+        this.gymMetrics = gymMetrics;
+    }
+
     @Transactional(readOnly = true)
     public String login(CredentialsDTO credentials) {
+        String username = credentials.getUsername();
+        checkIfBlocked(username);
         try {
-            Authentication authentication =
-                    authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(credentials.getUsername(), credentials.getPassword()));
-            if (gymMetrics != null) {
-                gymMetrics.recordSuccessfulLogin();
-            }
+            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, credentials.getPassword()));
+            loginAttemptService.loginSucceeded(username);
+            recordSuccessfulLogin();
             return jwtService.generateToken(authentication.getName());
         } catch (org.springframework.security.core.AuthenticationException exception) {
-            if (gymMetrics != null) {
-                gymMetrics.recordFailedLogin();
+            loginAttemptService.loginFailed(username);
+            recordFailedLogin();
+            if (loginAttemptService.isBlocked(username)) {
+                throw new AccountTemporarilyBlockedException("Too many unsuccessful login attempts. " + "User is blocked for 5 minutes.");
             }
             throw new AuthenticationException("Invalid username or password.");
         }
@@ -100,7 +113,6 @@ public class AuthenticationService {
         if (!passwordEncoder.matches(oldRawPassword, currentEncodedPassword)) {
             throw new AuthenticationException("Invalid username or password.");
         }
-
         String newEncodedPassword = passwordEncoder.encode(newRawPassword);
         passwordSetter.accept(newEncodedPassword);
         saveAction.run();
@@ -116,7 +128,29 @@ public class AuthenticationService {
 
     @Transactional(readOnly = true)
     public boolean userExists(String username) {
-        return traineeDao.findByUsername(username).isPresent()
-                || trainerDao.findByUsername(username).isPresent();
+        return traineeDao.findByUsername(username).isPresent() || trainerDao.findByUsername(username).isPresent();
     }
+
+    private void checkIfBlocked(String username) {
+        if (!loginAttemptService.isBlocked(username)) {
+            return;
+        }
+        long remainingSeconds = loginAttemptService.getRemainingBlockSeconds(username);
+        throw new AccountTemporarilyBlockedException("User is temporarily blocked. Try again in " + remainingSeconds + " seconds."
+        );
+    }
+
+    private void recordSuccessfulLogin() {
+        if (gymMetrics != null) {
+            gymMetrics.recordSuccessfulLogin();
+        }
+    }
+
+    private void recordFailedLogin() {
+        if (gymMetrics != null) {
+            gymMetrics.recordFailedLogin();
+        }
+    }
+
+
 }
