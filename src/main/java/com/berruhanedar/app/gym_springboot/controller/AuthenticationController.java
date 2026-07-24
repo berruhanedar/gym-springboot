@@ -36,4 +36,13 @@ public class AuthenticationController {
         authenticationService.changePassword(request);
         return ResponseEntity.ok().build();
     }
+
+    @Operation(summary = "Logout current user")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String authorizationHeader) {
+        authenticationService.logout(authorizationHeader);
+        return ResponseEntity.noContent().build();
+    }
+
 }

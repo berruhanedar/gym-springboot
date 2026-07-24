@@ -8,6 +8,7 @@ import com.berruhanedar.app.gym_springboot.exception.AccountTemporarilyBlockedEx
 import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.monitoring.GymMetrics;
 import com.berruhanedar.app.gym_springboot.security.LoginAttemptService;
+import com.berruhanedar.app.gym_springboot.security.TokenBlacklistService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 
+import java.time.Instant;
 import java.util.function.Consumer;
 
 @Service
@@ -27,6 +29,7 @@ public class AuthenticationService {
     private AuthenticationManager authenticationManager;
     private LoginAttemptService loginAttemptService;
     private GymMetrics gymMetrics;
+    private TokenBlacklistService tokenBlacklistService;
 
     @Autowired
     public void setTraineeDao(TraineeDao traineeDao) {
@@ -61,6 +64,11 @@ public class AuthenticationService {
     @Autowired
     public void setGymMetrics(GymMetrics gymMetrics) {
         this.gymMetrics = gymMetrics;
+    }
+
+    @Autowired
+    public void setTokenBlacklistService(TokenBlacklistService tokenBlacklistService) {
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @Transactional(readOnly = true)
@@ -138,6 +146,20 @@ public class AuthenticationService {
         long remainingSeconds = loginAttemptService.getRemainingBlockSeconds(username);
         throw new AccountTemporarilyBlockedException("User is temporarily blocked. Try again in " + remainingSeconds + " seconds."
         );
+    }
+
+    @Transactional
+    public void logout(String authorizationHeader) {
+        String token = extractBearerToken(authorizationHeader);
+        Instant expirationTime = jwtService.extractExpiration(token);
+        tokenBlacklistService.blacklist(token, expirationTime);
+    }
+
+    private String extractBearerToken(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new AuthenticationException("Invalid authorization header.");
+        }
+        return authorizationHeader.substring(7);
     }
 
     private void recordSuccessfulLogin() {
