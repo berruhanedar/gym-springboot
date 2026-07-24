@@ -10,16 +10,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 
 import java.util.function.Consumer;
 
 @Service
 public class AuthenticationService {
-
     private TraineeDao traineeDao;
     private TrainerDao trainerDao;
     private JwtService jwtService;
     private PasswordEncoder passwordEncoder;
+    private AuthenticationManager authenticationManager;
 
     @Autowired(required = false)
     private GymMetrics gymMetrics;
@@ -44,45 +47,24 @@ public class AuthenticationService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    @Transactional(readOnly = true)
-    public String login(CredentialsDTO credentials) {
-        try {
-            authenticate(credentials);
-            if (gymMetrics != null) {
-                gymMetrics.recordSuccessfulLogin();
-            }
-            return jwtService.generateToken(credentials.getUsername());
-        } catch (AuthenticationException exception) {
-            if (gymMetrics != null) {
-                gymMetrics.recordFailedLogin();
-            }
-            throw exception;
-        }
+    @Autowired
+    public void setAuthenticationManager(AuthenticationManager authenticationManager) {
+        this.authenticationManager = authenticationManager;
     }
 
     @Transactional(readOnly = true)
-    public void authenticate(CredentialsDTO credentials) {
-        boolean traineeAuthenticated =
-                traineeDao.findByUsername(credentials.getUsername())
-                        .map(trainee ->
-                                passwordEncoder.matches(
-                                        credentials.getPassword(),
-                                        trainee.getPassword()
-                                )
-                        )
-                        .orElse(false);
-
-        boolean trainerAuthenticated =
-                trainerDao.findByUsername(credentials.getUsername())
-                        .map(trainer ->
-                                passwordEncoder.matches(
-                                        credentials.getPassword(),
-                                        trainer.getPassword()
-                                )
-                        )
-                        .orElse(false);
-
-        if (!traineeAuthenticated && !trainerAuthenticated) {
+    public String login(CredentialsDTO credentials) {
+        try {
+            Authentication authentication =
+                    authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(credentials.getUsername(), credentials.getPassword()));
+            if (gymMetrics != null) {
+                gymMetrics.recordSuccessfulLogin();
+            }
+            return jwtService.generateToken(authentication.getName());
+        } catch (org.springframework.security.core.AuthenticationException exception) {
+            if (gymMetrics != null) {
+                gymMetrics.recordFailedLogin();
+            }
             throw new AuthenticationException("Invalid username or password.");
         }
     }
