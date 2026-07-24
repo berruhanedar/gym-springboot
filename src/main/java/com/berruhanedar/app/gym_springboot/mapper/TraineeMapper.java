@@ -10,8 +10,6 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface TraineeMapper {
 
-    RegistrationResponseDTO toRegistrationResponseDTO(Trainee trainee);
-
     @Mapping(source = "trainers", target = "trainers")
     TraineeResponseDTO toDTO(Trainee trainee);
 

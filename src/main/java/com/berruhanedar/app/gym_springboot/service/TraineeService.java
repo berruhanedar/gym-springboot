@@ -13,6 +13,7 @@ import com.berruhanedar.app.gym_springboot.util.CredentialGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,7 @@ public class TraineeService {
     private TrainerDao trainerDao;
     private TraineeMapper traineeMapper;
     private CredentialGenerator credentialGenerator;
+    private PasswordEncoder passwordEncoder;
 
     @Autowired(required = false)
     private GymMetrics gymMetrics;
@@ -47,6 +49,11 @@ public class TraineeService {
     }
 
     @Autowired
+    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @Autowired
     public void setCredentialGenerator(CredentialGenerator credentialGenerator) {
         this.credentialGenerator = credentialGenerator;
     }
@@ -55,15 +62,18 @@ public class TraineeService {
     public RegistrationResponseDTO createTrainee(NewTraineeRequestDTO dto) {
         log.info("Creating trainee profile for {} {}", dto.getFirstName(), dto.getLastName());
         Trainee trainee = traineeMapper.toEntity(dto);
-        trainee.setUsername(credentialGenerator.generateUsername(dto.getFirstName(), dto.getLastName()));
-        trainee.setPassword(credentialGenerator.generatePassword());
+        String username = credentialGenerator.generateUsername(dto.getFirstName(), dto.getLastName());
+        String rawPassword = credentialGenerator.generatePassword();
+        String hashedPassword = passwordEncoder.encode(rawPassword);
+        trainee.setUsername(username);
+        trainee.setPassword(hashedPassword);
         trainee.setIsActive(true);
         Trainee saved = traineeDao.save(trainee);
         log.info("Trainee profile created successfully. id={}", saved.getId());
         if (gymMetrics != null) {
             gymMetrics.recordTraineeRegistration();
         }
-        return traineeMapper.toRegistrationResponseDTO(saved);
+        return new RegistrationResponseDTO(saved.getUsername(), rawPassword);
     }
 
     @Transactional(readOnly = true)

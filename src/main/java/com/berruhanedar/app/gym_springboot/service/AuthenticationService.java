@@ -7,6 +7,7 @@ import com.berruhanedar.app.gym_springboot.dto.CredentialsDTO;
 import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.monitoring.GymMetrics;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ public class AuthenticationService {
     private TraineeDao traineeDao;
     private TrainerDao trainerDao;
     private JwtService jwtService;
+    private PasswordEncoder passwordEncoder;
 
     @Autowired(required = false)
     private GymMetrics gymMetrics;
@@ -35,6 +37,11 @@ public class AuthenticationService {
     @Autowired
     public void setJwtService(JwtService jwtService) {
         this.jwtService = jwtService;
+    }
+
+    @Autowired
+    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
@@ -55,16 +62,27 @@ public class AuthenticationService {
 
     @Transactional(readOnly = true)
     public void authenticate(CredentialsDTO credentials) {
-        boolean authenticated =
+        boolean traineeAuthenticated =
                 traineeDao.findByUsername(credentials.getUsername())
-                        .filter(trainee -> trainee.getPassword().equals(credentials.getPassword()))
-                        .isPresent()
-                        ||
-                        trainerDao.findByUsername(credentials.getUsername())
-                                .filter(trainer -> trainer.getPassword().equals(credentials.getPassword()))
-                                .isPresent();
+                        .map(trainee ->
+                                passwordEncoder.matches(
+                                        credentials.getPassword(),
+                                        trainee.getPassword()
+                                )
+                        )
+                        .orElse(false);
 
-        if (!authenticated) {
+        boolean trainerAuthenticated =
+                trainerDao.findByUsername(credentials.getUsername())
+                        .map(trainer ->
+                                passwordEncoder.matches(
+                                        credentials.getPassword(),
+                                        trainer.getPassword()
+                                )
+                        )
+                        .orElse(false);
+
+        if (!traineeAuthenticated && !trainerAuthenticated) {
             throw new AuthenticationException("Invalid username or password.");
         }
     }
@@ -96,12 +114,13 @@ public class AuthenticationService {
                 );
     }
 
-    private void updatePassword(String currentPassword, String oldPassword, String newPassword, Consumer<String> passwordSetter, Runnable saveAction) {
-        if (!currentPassword.equals(oldPassword)) {
+    private void updatePassword(String currentEncodedPassword, String oldRawPassword, String newRawPassword, Consumer<String> passwordSetter, Runnable saveAction) {
+        if (!passwordEncoder.matches(oldRawPassword, currentEncodedPassword)) {
             throw new AuthenticationException("Invalid username or password.");
         }
 
-        passwordSetter.accept(newPassword);
+        String newEncodedPassword = passwordEncoder.encode(newRawPassword);
+        passwordSetter.accept(newEncodedPassword);
         saveAction.run();
     }
 
