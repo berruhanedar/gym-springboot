@@ -42,7 +42,9 @@ public class TrainerDao {
                         "SELECT t FROM Trainer t WHERE t.username = :username",
                         Trainer.class)
                 .setParameter("username", username)
-                .getResultStream()
+                .setMaxResults(1)
+                .getResultList()
+                .stream()
                 .findFirst();
     }
 

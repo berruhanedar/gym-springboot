@@ -41,7 +41,9 @@ public class TraineeDao {
                         "SELECT t FROM Trainee t WHERE t.username = :username",
                         Trainee.class)
                 .setParameter("username", username)
-                .getResultStream()
+                .setMaxResults(1)
+                .getResultList()
+                .stream()
                 .findFirst();
     }
 
