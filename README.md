@@ -562,6 +562,416 @@ mvn clean verify
 
 ---
 
+
+---
+
+# Microservices Architecture
+
+The project was extended with a microservices architecture for trainer workload calculation.
+
+The solution consists of:
+
+* **gym-springboot** — main Gym CRM REST API
+* **trainer-workload-service** — calculates and stores trainer monthly workload
+* **discovery-service** — Eureka service registry
+
+The communication flow is:
+
+```text
+Client
+  │
+  ▼
+gym-springboot
+  │
+  │ POST /api/workloads
+  │ Authorization: Bearer <JWT>
+  │ X-Transaction-Id: <transaction-id>
+  ▼
+trainer-workload-service
+  │
+  ▼
+H2 in-memory database
+```
+
+Whenever a training is added or deleted, the main application sends the corresponding workload operation to the trainer workload microservice.
+
+## Trainer Workload
+
+The workload request contains:
+
+* Trainer username
+* Trainer first name
+* Trainer last name
+* Trainer active status
+* Training date
+* Training duration
+* Action type (`ADD` / `DELETE`)
+
+Example:
+
+```json
+{
+  "trainerUsername": "Mike.Smith",
+  "trainerFirstName": "Mike",
+  "trainerLastName": "Smith",
+  "isActive": true,
+  "trainingDate": "2026-08-08",
+  "trainingDuration": 60,
+  "actionType": "ADD"
+}
+```
+
+Successful processing returns:
+
+```text
+200 OK
+```
+
+The workload model keeps monthly summaries grouped by year:
+
+```text
+TrainerWorkload
+ ├── trainerUsername
+ ├── trainerFirstName
+ ├── trainerLastName
+ ├── active
+ └── years
+      └── YearSummary
+           ├── trainingYear
+           └── months
+                └── MonthSummary
+                     ├── trainingMonth
+                     └── trainingSummaryDuration
+```
+
+For `ADD`:
+
+```text
+monthlyDuration += trainingDuration
+```
+
+For `DELETE`:
+
+```text
+monthlyDuration -= trainingDuration
+```
+
+The result is stored in the in-memory H2 database.
+
+---
+
+# Training and Workload Synchronization
+
+When a training is created:
+
+```text
+POST /api/trainings
+       │
+       ▼
+TrainingService
+       │
+       ├── Save training
+       │
+       └── TrainerWorkloadClient
+                │
+                ▼
+       trainer-workload-service
+                │
+                └── ADD workload
+```
+
+When a training is deleted:
+
+```text
+DELETE /api/trainings/{trainingId}
+       │
+       ▼
+TrainingService
+       │
+       ├── Delete training
+       │
+       └── TrainerWorkloadClient
+                │
+                ▼
+       trainer-workload-service
+                │
+                └── DELETE workload
+```
+
+`TrainerWorkloadClient` uses Spring `RestClient` and Eureka service discovery to communicate with the workload service.
+
+---
+
+# Eureka Discovery Service
+
+The project includes a dedicated Eureka Discovery Service.
+
+The Gym application and trainer workload service register with Eureka and can communicate through their logical service names.
+
+The workload service is addressed as:
+
+```text
+http://trainer-workload-service
+```
+
+Eureka configuration:
+
+```properties
+eureka.client.service-url.defaultZone=http://localhost:8761/eureka/
+```
+
+This avoids hard-coding the physical host and port of the workload service.
+
+---
+
+# Circuit Breaker
+
+Communication between the main Gym application and the trainer workload service is protected with the **Circuit Breaker** pattern using Resilience4j.
+
+The configured circuit breaker is:
+
+```text
+trainerWorkloadService
+```
+
+Configuration:
+
+```properties
+resilience4j.circuitbreaker.instances.trainerWorkloadService.sliding-window-size=5
+resilience4j.circuitbreaker.instances.trainerWorkloadService.minimum-number-of-calls=3
+resilience4j.circuitbreaker.instances.trainerWorkloadService.failure-rate-threshold=50
+resilience4j.circuitbreaker.instances.trainerWorkloadService.wait-duration-in-open-state=10s
+resilience4j.circuitbreaker.instances.trainerWorkloadService.permitted-number-of-calls-in-half-open-state=2
+resilience4j.circuitbreaker.instances.trainerWorkloadService.automatic-transition-from-open-to-half-open-enabled=true
+```
+
+If the workload service is unavailable, the client uses a fallback and logs the failure.
+
+This prevents a downstream workload-service problem from directly breaking the main application request flow.
+
+---
+
+# Microservice Authorization
+
+Communication between `gym-springboot` and `trainer-workload-service` is protected with JWT Bearer authorization.
+
+The existing JWT is forwarded through:
+
+```http
+Authorization: Bearer <jwt-token>
+```
+
+The downstream request also receives the transaction ID:
+
+```http
+X-Transaction-Id: <transaction-id>
+```
+
+This allows the downstream operation to be associated with the original request.
+
+---
+
+# Transaction ID and Distributed Logging
+
+The project implements transaction-level logging across microservice calls.
+
+`TransactionIdFilter`:
+
+1. Reads `X-Transaction-Id` from the incoming request.
+2. Generates a UUID when the header is missing.
+3. Stores the transaction ID in SLF4J MDC.
+4. Adds the transaction ID to the HTTP response.
+5. Removes the value from MDC after request processing.
+
+Example:
+
+```http
+X-Transaction-Id: d6ac94a9-8b0f-4e8a-ae5c-36638294f2ca
+```
+
+The same ID is propagated from the Gym application to the workload service.
+
+Console logging includes the transaction ID:
+
+```properties
+logging.pattern.console=%d{yyyy-MM-dd HH\:mm\:ss} [%X{transactionId}] %-5level %logger{36} - %msg%n
+```
+
+Example:
+
+```text
+GYM
+[d6ac94a9-8b0f-4e8a-ae5c-36638294f2ca]
+POST /api/trainings
+        │
+        ▼
+[d6ac94a9-8b0f-4e8a-ae5c-36638294f2ca]
+trainer-workload-service
+        │
+        ▼
+Processing trainer workload
+```
+
+## Two Logging Levels
+
+### Transaction Level
+
+Records:
+
+* Endpoint called
+* Transaction ID
+* HTTP method
+* Response status
+* Overall request processing
+
+### Operation / Service Level
+
+Records important business operations such as:
+
+* Training creation
+* Training deletion
+* Workload processing
+* Monthly workload calculation
+* Circuit breaker fallback
+
+Sensitive values such as passwords and JWT contents are not logged.
+
+---
+
+# REST API Design
+
+The API follows the **second level of the Richardson Maturity Model**.
+
+It uses:
+
+* HTTP methods
+* Resource-oriented URLs
+* HTTP status codes
+* JSON request and response bodies
+
+Example resources:
+
+```http
+GET    /api/trainings/trainees/{username}/trainings
+GET    /api/trainings/trainers/{username}/trainings
+POST   /api/trainings
+DELETE /api/trainings/{trainingId}
+GET    /api/trainings/types
+```
+
+HATEOAS is not required for Richardson Level 2. HATEOAS belongs to the next maturity level.
+
+---
+
+# Trainer Workload Service API
+
+The secondary microservice exposes:
+
+```http
+POST /api/workloads
+Authorization: Bearer <jwt-token>
+X-Transaction-Id: <transaction-id>
+Content-Type: application/json
+```
+
+Request:
+
+```json
+{
+  "trainerUsername": "Mike.Smith",
+  "trainerFirstName": "Mike",
+  "trainerLastName": "Smith",
+  "isActive": true,
+  "trainingDate": "2026-08-08",
+  "trainingDuration": 60,
+  "actionType": "ADD"
+}
+```
+
+Successful response:
+
+```text
+200 OK
+```
+
+---
+
+# Updated Training Endpoints
+
+The training API now includes:
+
+| Method | Endpoint                                       | Authentication | Description           |
+| ------ | ---------------------------------------------- | -------------: | --------------------- |
+| POST   | `/api/trainings`                               |       Required | Add training          |
+| DELETE | `/api/trainings/{trainingId}`                  |       Required | Delete training       |
+| GET    | `/api/trainings/types`                         |       Required | Get training types    |
+| GET    | `/api/trainings/trainees/{username}/trainings` |       Required | Get trainee trainings |
+| GET    | `/api/trainings/trainers/{username}/trainings` |       Required | Get trainer trainings |
+
+When creating or deleting a training, the Authorization header is forwarded to the trainer workload service.
+
+---
+
+# Microservices Configuration
+
+## Trainer Workload Service
+
+Example configuration:
+
+```properties
+server.port=8081
+
+spring.application.name=trainer-workload-service
+
+spring.datasource.url=jdbc:h2:mem:workloaddb
+spring.datasource.driver-class-name=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=true
+
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+eureka.client.service-url.defaultZone=http://localhost:8761/eureka/
+
+logging.pattern.console=%d{yyyy-MM-dd HH\:mm\:ss} [%X{transactionId}] %-5level %logger{36} - %msg%n
+```
+
+The workload service uses an H2 in-memory database, so workload data is held in memory while the application is running.
+
+---
+
+# Updated Testing
+
+The project includes unit and integration tests for the training functionality.
+
+The `TrainingService` tests cover scenarios such as:
+
+* Training creation
+* Training deletion
+* Authorization validation
+* Missing trainee handling
+* Missing trainer handling
+* Workload client interaction
+* `ADD` workload operation
+* `DELETE` workload operation
+* Training type retrieval
+* Trainee training retrieval
+* Trainer training retrieval
+
+Controller tests cover:
+
+* Training endpoints
+* Request validation
+* Authorization header propagation
+* Delete training requests
+* Exception-to-HTTP-status handling
+
+---
+
+
 # Technologies
 
 * Java 21
@@ -583,6 +993,9 @@ mvn clean verify
 * MapStruct
 * Jakarta Bean Validation
 * Springdoc OpenAPI
+* Spring Cloud Eureka
+* Resilience4j Circuit Breaker
+* Spring RestClient
 * JUnit 5
 * Mockito
 * AssertJ
@@ -595,6 +1008,7 @@ mvn clean verify
 
 ```text
 src/main/java/com/berruhanedar/app/gym_springboot/
+├── client/
 ├── config/
 ├── controller/
 ├── dao/
@@ -719,5 +1133,12 @@ Reject further requests using the same token
 * Prometheus custom metrics
 * Structured logging
 * Swagger / OpenAPI documentation
+* Eureka service discovery
+* Trainer workload microservice
+* Inter-service JWT Bearer authorization
+* Resilience4j Circuit Breaker
+* Transaction ID propagation across microservices
+* Structured transaction and operation logging
+* Training ADD/DELETE workload synchronization
 * Unit and integration testing
 * 89% code coverage
