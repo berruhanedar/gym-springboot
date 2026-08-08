@@ -44,15 +44,15 @@ public class TrainingController {
 
     @Operation(summary = "Add training")
     @PostMapping
-    public ResponseEntity<Void> addTraining(@Valid @RequestBody NewTrainingRequestDTO request) {
-        trainingService.createTraining(request);
+    public ResponseEntity<Void> addTraining(@Valid @RequestBody NewTrainingRequestDTO request, @RequestHeader("Authorization") String authorizationHeader) {
+        trainingService.createTraining(request, authorizationHeader);
         return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "Delete training")
     @DeleteMapping("/{trainingId}")
-    public ResponseEntity<Void> deleteTraining(@PathVariable Long trainingId) {
-        trainingService.deleteTraining(trainingId);
+    public ResponseEntity<Void> deleteTraining(@PathVariable Long trainingId, @RequestHeader("Authorization") String authorizationHeader) {
+        trainingService.deleteTraining(trainingId, authorizationHeader);
         return ResponseEntity.ok().build();
     }
 
@@ -62,7 +62,6 @@ public class TrainingController {
         List<TrainingTypeResponseDTO> response = trainingService.getTrainingTypes();
         return ResponseEntity.ok(response);
     }
-
 
 
 }

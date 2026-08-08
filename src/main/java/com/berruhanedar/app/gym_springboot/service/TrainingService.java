@@ -96,7 +96,7 @@ public class TrainingService {
     }
 
     @Transactional
-    public void createTraining(NewTrainingRequestDTO dto) {
+    public void createTraining(NewTrainingRequestDTO dto, String authorizationHeader) {
         validateCurrentUser(dto.getTrainerUsername(), "Trainer is not authorized to create this training.");
         log.info("Creating training. traineeUsername={}, trainerUsername={}", dto.getTraineeUsername(), dto.getTrainerUsername());
         Trainee trainee = findTraineeByUsername(dto.getTraineeUsername());
@@ -108,7 +108,7 @@ public class TrainingService {
         Training saved = trainingDao.save(training);
         TrainerWorkloadRequestDTO workloadRequest = trainingMapper.toTrainerWorkloadRequestDTO(saved);
         workloadRequest.setActionType(ActionType.ADD);
-        trainerWorkloadClient.sendWorkload(workloadRequest);
+        trainerWorkloadClient.sendWorkload(workloadRequest, authorizationHeader);
         log.info("Training created successfully. id={}", saved.getId());
         if (gymMetrics != null) {
             gymMetrics.recordTrainingCreated();
@@ -124,13 +124,13 @@ public class TrainingService {
     }
 
     @Transactional
-    public void deleteTraining(Long trainingId) {
+    public void deleteTraining(Long trainingId, String authorizationHeader) {
         Training training = trainingDao.findById(trainingId).orElseThrow(() -> new EntityNotFoundException("Training not found: " + trainingId));
         validateCurrentUser(training.getTrainer().getUsername(), "Trainer is not authorized to delete this training.");
-        TrainerWorkloadRequestDTO workloadRequest =                trainingMapper.toTrainerWorkloadRequestDTO(training);
+        TrainerWorkloadRequestDTO workloadRequest = trainingMapper.toTrainerWorkloadRequestDTO(training);
         workloadRequest.setActionType(ActionType.DELETE);
         trainingDao.delete(training);
-        trainerWorkloadClient.sendWorkload(workloadRequest);
+        trainerWorkloadClient.sendWorkload(workloadRequest, authorizationHeader);
         log.info("Training deleted successfully. id={}", trainingId);
     }
 
