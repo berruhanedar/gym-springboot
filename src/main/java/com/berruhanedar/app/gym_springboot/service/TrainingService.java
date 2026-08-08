@@ -1,8 +1,10 @@
 package com.berruhanedar.app.gym_springboot.service;
 
+import com.berruhanedar.app.gym_springboot.client.TrainerWorkloadClient;
 import com.berruhanedar.app.gym_springboot.dao.*;
 import com.berruhanedar.app.gym_springboot.dto.*;
 import com.berruhanedar.app.gym_springboot.entity.*;
+import com.berruhanedar.app.gym_springboot.enums.ActionType;
 import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TrainingMapper;
@@ -26,6 +28,7 @@ public class TrainingService {
     private TrainingTypeDao trainingTypeDao;
     private TrainingMapper trainingMapper;
     private TrainingTypeMapper trainingTypeMapper;
+    private TrainerWorkloadClient trainerWorkloadClient;
 
     @Autowired(required = false)
     private GymMetrics gymMetrics;
@@ -58,6 +61,11 @@ public class TrainingService {
     @Autowired
     public void setTrainingMapper(TrainingMapper trainingMapper) {
         this.trainingMapper = trainingMapper;
+    }
+
+    @Autowired
+    public void setTrainerWorkloadClient(TrainerWorkloadClient trainerWorkloadClient) {
+        this.trainerWorkloadClient = trainerWorkloadClient;
     }
 
     @Transactional(readOnly = true)
@@ -98,6 +106,9 @@ public class TrainingService {
         training.setTrainer(trainer);
         training.setTrainingType(trainer.getSpecialization());
         Training saved = trainingDao.save(training);
+        TrainerWorkloadRequestDTO workloadRequest = trainingMapper.toTrainerWorkloadRequestDTO(saved);
+        workloadRequest.setActionType(ActionType.ADD);
+        trainerWorkloadClient.sendWorkload(workloadRequest);
         log.info("Training created successfully. id={}", saved.getId());
         if (gymMetrics != null) {
             gymMetrics.recordTrainingCreated();
@@ -110,6 +121,17 @@ public class TrainingService {
                 .stream()
                 .map(trainingTypeMapper::toDTO)
                 .toList();
+    }
+
+    @Transactional
+    public void deleteTraining(Long trainingId) {
+        Training training = trainingDao.findById(trainingId).orElseThrow(() -> new EntityNotFoundException("Training not found: " + trainingId));
+        validateCurrentUser(training.getTrainer().getUsername(), "Trainer is not authorized to delete this training.");
+        TrainerWorkloadRequestDTO workloadRequest =                trainingMapper.toTrainerWorkloadRequestDTO(training);
+        workloadRequest.setActionType(ActionType.DELETE);
+        trainingDao.delete(training);
+        trainerWorkloadClient.sendWorkload(workloadRequest);
+        log.info("Training deleted successfully. id={}", trainingId);
     }
 
     private Trainee findTraineeByUsername(String username) {

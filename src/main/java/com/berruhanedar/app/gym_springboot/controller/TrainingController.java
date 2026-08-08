@@ -49,10 +49,20 @@ public class TrainingController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "Delete training")
+    @DeleteMapping("/{trainingId}")
+    public ResponseEntity<Void> deleteTraining(@PathVariable Long trainingId) {
+        trainingService.deleteTraining(trainingId);
+        return ResponseEntity.ok().build();
+    }
+
     @Operation(summary = "Get training types")
     @GetMapping("/types")
     public ResponseEntity<List<TrainingTypeResponseDTO>> getTrainingTypes() {
         List<TrainingTypeResponseDTO> response = trainingService.getTrainingTypes();
         return ResponseEntity.ok(response);
     }
+
+
+
 }

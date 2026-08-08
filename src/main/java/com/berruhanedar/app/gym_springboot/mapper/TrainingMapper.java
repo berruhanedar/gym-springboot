@@ -26,4 +26,13 @@ public interface TrainingMapper {
     @Mapping(source = "trainingType.trainingTypeName", target = "trainingTypeName")
     @Mapping(expression = "java(training.getTrainee().getFirstName() + \" \" + training.getTrainee().getLastName())", target = "traineeName")
     TrainerTrainingResponseDTO toTrainerTrainingResponseDTO(Training training);
+
+    @Mapping(source = "trainer.username", target = "trainerUsername")
+    @Mapping(source = "trainer.firstName", target = "trainerFirstName")
+    @Mapping(source = "trainer.lastName", target = "trainerLastName")
+    @Mapping(source = "trainer.isActive", target = "active")
+    @Mapping(source = "trainingDate", target = "trainingDate")
+    @Mapping(source = "trainingDuration", target = "trainingDuration")
+    @Mapping(target = "actionType", ignore = true)
+    TrainerWorkloadRequestDTO toTrainerWorkloadRequestDTO(Training training);
 }
