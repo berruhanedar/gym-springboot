@@ -26,8 +26,12 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 
 class TrainingControllerTest {
 
+    private static final String AUTHORIZATION_HEADER = "Bearer test-jwt-token";
+
     private final TrainingService trainingService = mock(TrainingService.class);
-    private final TrainingController trainingController = new TrainingController(trainingService);
+    private final TrainingController trainingController =
+            new TrainingController(trainingService);
+
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule());
 
@@ -72,20 +76,27 @@ class TrainingControllerTest {
         verify(trainingService).getTraineeTrainings(
                 eq("John.Doe"), filterCaptor.capture());
 
-        assertThat(filterCaptor.getValue().getPeriodFrom()).isEqualTo(LocalDate.of(2026, 7, 1));
-        assertThat(filterCaptor.getValue().getPeriodTo()).isEqualTo(LocalDate.of(2026, 7, 31));
-        assertThat(filterCaptor.getValue().getTrainerName()).isEqualTo("Daniel");
-        assertThat(filterCaptor.getValue().getTrainingType()).isEqualTo("Yoga");
+        assertThat(filterCaptor.getValue().getPeriodFrom())
+                .isEqualTo(LocalDate.of(2026, 7, 1));
+        assertThat(filterCaptor.getValue().getPeriodTo())
+                .isEqualTo(LocalDate.of(2026, 7, 31));
+        assertThat(filterCaptor.getValue().getTrainerName())
+                .isEqualTo("Daniel");
+        assertThat(filterCaptor.getValue().getTrainingType())
+                .isEqualTo("Yoga");
     }
 
     @Test
     void shouldReturnUnauthorizedWhenGetTraineeTrainingsFails() throws Exception {
         doThrow(new AuthenticationException("Invalid username or password."))
                 .when(trainingService)
-                .getTraineeTrainings(eq("John.Doe"), any(TraineeTrainingsFilterDTO.class));
+                .getTraineeTrainings(
+                        eq("John.Doe"),
+                        any(TraineeTrainingsFilterDTO.class));
 
-        mockMvc.perform(get("/api/trainings/trainees/John.Doe/trainings"))
-                .andExpect(status().isUnauthorized());
+        mockMvc.perform(
+                get("/api/trainings/trainees/John.Doe/trainings")
+        ).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -101,11 +112,12 @@ class TrainingControllerTest {
                 eq("Daniel.Anderson"), any(TrainerTrainingsFilterDTO.class)))
                 .thenReturn(List.of(training));
 
-        mockMvc.perform(get("/api/trainings/trainers/Daniel.Anderson/trainings")
+        mockMvc.perform(
+                get("/api/trainings/trainers/Daniel.Anderson/trainings")
                         .param("periodFrom", "2026-07-01")
                         .param("periodTo", "2026-07-31")
-                        .param("traineeName", "John"))
-                .andExpect(status().isOk());
+                        .param("traineeName", "John")
+        ).andExpect(status().isOk());
 
         ArgumentCaptor<TrainerTrainingsFilterDTO> filterCaptor =
                 ArgumentCaptor.forClass(TrainerTrainingsFilterDTO.class);
@@ -113,13 +125,16 @@ class TrainingControllerTest {
         verify(trainingService).getTrainerTrainings(
                 eq("Daniel.Anderson"), filterCaptor.capture());
 
-        assertThat(filterCaptor.getValue().getPeriodFrom()).isEqualTo(LocalDate.of(2026, 7, 1));
-        assertThat(filterCaptor.getValue().getPeriodTo()).isEqualTo(LocalDate.of(2026, 7, 31));
-        assertThat(filterCaptor.getValue().getTraineeName()).isEqualTo("John");
+        assertThat(filterCaptor.getValue().getPeriodFrom())
+                .isEqualTo(LocalDate.of(2026, 7, 1));
+        assertThat(filterCaptor.getValue().getPeriodTo())
+                .isEqualTo(LocalDate.of(2026, 7, 31));
+        assertThat(filterCaptor.getValue().getTraineeName())
+                .isEqualTo("John");
     }
 
     @Test
-    void shouldAddTraining() throws Exception {
+    void shouldAddTrainingAndPassAuthorizationHeader() throws Exception {
         LocalDate futureDate = LocalDate.now().plusDays(1);
 
         NewTrainingRequestDTO request = new NewTrainingRequestDTO();
@@ -129,15 +144,23 @@ class TrainingControllerTest {
         request.setTrainingDate(futureDate);
         request.setTrainingDuration(60);
 
-        mockMvc.perform(post("/api/trainings")
+        mockMvc.perform(
+                post("/api/trainings")
+                        .header("Authorization", AUTHORIZATION_HEADER)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+                        .content(objectMapper.writeValueAsString(request))
+        ).andExpect(status().isOk());
 
         ArgumentCaptor<NewTrainingRequestDTO> requestCaptor =
                 ArgumentCaptor.forClass(NewTrainingRequestDTO.class);
 
-        verify(trainingService).createTraining(requestCaptor.capture());
+        ArgumentCaptor<String> authorizationCaptor =
+                ArgumentCaptor.forClass(String.class);
+
+        verify(trainingService).createTraining(
+                requestCaptor.capture(),
+                authorizationCaptor.capture()
+        );
 
         assertThat(requestCaptor.getValue().getTraineeUsername())
                 .isEqualTo("John.Doe");
@@ -149,6 +172,9 @@ class TrainingControllerTest {
                 .isEqualTo(futureDate);
         assertThat(requestCaptor.getValue().getTrainingDuration())
                 .isEqualTo(60);
+
+        assertThat(authorizationCaptor.getValue())
+                .isEqualTo(AUTHORIZATION_HEADER);
     }
 
     @Test
@@ -160,12 +186,42 @@ class TrainingControllerTest {
         request.setTrainingDate(LocalDate.of(2026, 7, 10));
         request.setTrainingDuration(0);
 
-        mockMvc.perform(post("/api/trainings")
+        mockMvc.perform(
+                post("/api/trainings")
+                        .header("Authorization", AUTHORIZATION_HEADER)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+                        .content(objectMapper.writeValueAsString(request))
+        ).andExpect(status().isBadRequest());
 
-        verify(trainingService, never()).createTraining(any());
+        verify(trainingService, never())
+                .createTraining(any(NewTrainingRequestDTO.class), anyString());
+    }
+
+    @Test
+    void shouldDeleteTrainingAndPassAuthorizationHeader() throws Exception {
+        mockMvc.perform(
+                delete("/api/trainings/1")
+                        .header("Authorization", AUTHORIZATION_HEADER)
+        ).andExpect(status().isOk());
+
+        verify(trainingService)
+                .deleteTraining(1L, AUTHORIZATION_HEADER);
+    }
+
+    @Test
+    void shouldReturnUnauthorizedWhenDeleteTrainingFails() throws Exception {
+        doThrow(new AuthenticationException(
+                "Trainer is not authorized to delete this training."))
+                .when(trainingService)
+                .deleteTraining(1L, AUTHORIZATION_HEADER);
+
+        mockMvc.perform(
+                delete("/api/trainings/1")
+                        .header("Authorization", AUTHORIZATION_HEADER)
+        ).andExpect(status().isUnauthorized());
+
+        verify(trainingService)
+                .deleteTraining(1L, AUTHORIZATION_HEADER);
     }
 
     @Test
@@ -177,8 +233,9 @@ class TrainingControllerTest {
         when(trainingService.getTrainingTypes())
                 .thenReturn(List.of(type));
 
-        mockMvc.perform(get("/api/trainings/types"))
-                .andExpect(status().isOk());
+        mockMvc.perform(
+                get("/api/trainings/types")
+        ).andExpect(status().isOk());
 
         verify(trainingService).getTrainingTypes();
     }

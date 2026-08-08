@@ -10,6 +10,7 @@ import com.berruhanedar.app.gym_springboot.dto.TraineeTrainingsFilterDTO;
 import com.berruhanedar.app.gym_springboot.dto.TrainerTrainingResponseDTO;
 import com.berruhanedar.app.gym_springboot.dto.TrainerTrainingsFilterDTO;
 import com.berruhanedar.app.gym_springboot.dto.TrainingTypeResponseDTO;
+import com.berruhanedar.app.gym_springboot.entity.Training;
 import com.berruhanedar.app.gym_springboot.entity.TrainingType;
 import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
@@ -38,8 +39,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class TrainingServiceTest {
 
+    private static final String AUTHORIZATION_HEADER = "Bearer test-jwt-token";
+
     @Autowired
     private GymFacade gymFacade;
+
+    @Autowired
+    private TrainingService trainingService;
 
     @Autowired
     private TransactionTemplate transactionTemplate;
@@ -68,7 +74,8 @@ class TrainingServiceTest {
                         "Morning Yoga",
                         LocalDate.now().plusDays(1),
                         45
-                )
+                ),
+                AUTHORIZATION_HEADER
         );
 
         authenticateAs(trainee.getUsername());
@@ -102,7 +109,8 @@ class TrainingServiceTest {
                         "Yoga Match",
                         LocalDate.now().plusDays(2),
                         50
-                )
+                ),
+                AUTHORIZATION_HEADER
         );
 
         authenticateAs(cardioTrainer.getUsername());
@@ -113,7 +121,8 @@ class TrainingServiceTest {
                         "Cardio Out",
                         LocalDate.now().plusDays(2),
                         30
-                )
+                ),
+                AUTHORIZATION_HEADER
         );
 
         authenticateAs(yogaTrainer.getUsername());
@@ -124,7 +133,8 @@ class TrainingServiceTest {
                         "Old Yoga",
                         LocalDate.now().plusDays(10),
                         40
-                )
+                ),
+                AUTHORIZATION_HEADER
         );
 
         authenticateAs(trainee.getUsername());
@@ -160,7 +170,8 @@ class TrainingServiceTest {
                         "Pilates Match",
                         LocalDate.now().plusDays(4),
                         55
-                )
+                ),
+                AUTHORIZATION_HEADER
         );
 
         gymFacade.createTraining(
@@ -170,7 +181,8 @@ class TrainingServiceTest {
                         "Pilates Other",
                         LocalDate.now().plusDays(4),
                         35
-                )
+                ),
+                AUTHORIZATION_HEADER
         );
 
         gymFacade.createTraining(
@@ -180,7 +192,8 @@ class TrainingServiceTest {
                         "Pilates Later",
                         LocalDate.now().plusDays(20),
                         35
-                )
+                ),
+                AUTHORIZATION_HEADER
         );
 
         List<TrainerTrainingResponseDTO> result = gymFacade.getTrainerTrainings(
@@ -213,7 +226,8 @@ class TrainingServiceTest {
                         "Stretch One",
                         LocalDate.now().plusDays(1),
                         20
-                )
+                ),
+                AUTHORIZATION_HEADER
         );
 
         gymFacade.createTraining(
@@ -223,7 +237,8 @@ class TrainingServiceTest {
                         "Stretch Two",
                         LocalDate.now().plusDays(2),
                         25
-                )
+                ),
+                AUTHORIZATION_HEADER
         );
 
         authenticateAs(trainee.getUsername());
@@ -241,6 +256,7 @@ class TrainingServiceTest {
     @Test
     void shouldThrowExceptionWhenTraineeDoesNotExist() {
         TrainingType yoga = ensureTrainingType("Yoga");
+
         RegistrationResponseDTO trainer = createTrainer("Valid", "Trainer", yoga);
 
         authenticateAs(trainer.getUsername());
@@ -253,7 +269,8 @@ class TrainingServiceTest {
                                 "Training",
                                 LocalDate.now().plusDays(1),
                                 60
-                        )
+                        ),
+                        AUTHORIZATION_HEADER
                 )
         )
                 .isInstanceOf(EntityNotFoundException.class)
@@ -277,7 +294,8 @@ class TrainingServiceTest {
                                 "Training",
                                 LocalDate.now().plusDays(1),
                                 60
-                        )
+                        ),
+                        AUTHORIZATION_HEADER
                 )
         )
                 .isInstanceOf(AuthenticationException.class)
@@ -301,9 +319,11 @@ class TrainingServiceTest {
                                 "Auth Fail",
                                 LocalDate.now().plusDays(1),
                                 45
-                        )
+                        ),
+                        AUTHORIZATION_HEADER
                 )
-        ).isInstanceOf(AuthenticationException.class);
+        )
+                .isInstanceOf(AuthenticationException.class);
 
         assertThatThrownBy(() ->
                 gymFacade.getTraineeTrainings(
@@ -318,6 +338,119 @@ class TrainingServiceTest {
                         trainerFilter(null, null, null)
                 )
         ).isInstanceOf(AuthenticationException.class);
+    }
+
+    @Test
+    void shouldDeleteExistingTrainingWhenAuthenticatedAsTrainer() {
+        TrainingType yoga = ensureTrainingType("Yoga");
+
+        RegistrationResponseDTO trainee = createTrainee("Delete", "Trainee");
+        RegistrationResponseDTO trainer = createTrainer("Delete", "Trainer", yoga);
+
+        authenticateAs(trainer.getUsername());
+
+        gymFacade.createTraining(
+                newTraining(
+                        trainee.getUsername(),
+                        trainer.getUsername(),
+                        "Training To Delete",
+                        LocalDate.now().plusDays(1),
+                        60
+                ),
+                AUTHORIZATION_HEADER
+        );
+
+        Long trainingId = transactionTemplate.execute(status ->
+                entityManager.createQuery(
+                                """
+                                SELECT t
+                                FROM Training t
+                                WHERE t.trainee.username = :traineeUsername
+                                  AND t.trainer.username = :trainerUsername
+                                  AND t.trainingName = :trainingName
+                                """,
+                                Training.class
+                        )
+                        .setParameter("traineeUsername", trainee.getUsername())
+                        .setParameter("trainerUsername", trainer.getUsername())
+                        .setParameter("trainingName", "Training To Delete")
+                        .setMaxResults(1)
+                        .getSingleResult()
+                        .getId()
+        );
+
+        trainingService.deleteTraining(trainingId, AUTHORIZATION_HEADER);
+
+        Long remainingCount = transactionTemplate.execute(status ->
+                entityManager.createQuery(
+                                """
+                                SELECT COUNT(t)
+                                FROM Training t
+                                WHERE t.id = :trainingId
+                                """,
+                                Long.class
+                        )
+                        .setParameter("trainingId", trainingId)
+                        .getSingleResult()
+        );
+
+        assertThat(remainingCount).isZero();
+    }
+
+    @Test
+    void shouldRejectTrainingDeletionWhenAuthenticatedUserIsNotTheTrainer() {
+        TrainingType yoga = ensureTrainingType("Yoga");
+
+        RegistrationResponseDTO trainee = createTrainee("Delete", "AuthTrainee");
+        RegistrationResponseDTO trainer = createTrainer("Delete", "Owner", yoga);
+        RegistrationResponseDTO anotherTrainer = createTrainer("Another", "Trainer", yoga);
+
+        authenticateAs(trainer.getUsername());
+
+        gymFacade.createTraining(
+                newTraining(
+                        trainee.getUsername(),
+                        trainer.getUsername(),
+                        "Protected Training",
+                        LocalDate.now().plusDays(1),
+                        60
+                ),
+                AUTHORIZATION_HEADER
+        );
+
+        Long trainingId = transactionTemplate.execute(status ->
+                entityManager.createQuery(
+                                """
+                                SELECT t
+                                FROM Training t
+                                WHERE t.trainee.username = :traineeUsername
+                                  AND t.trainer.username = :trainerUsername
+                                  AND t.trainingName = :trainingName
+                                """,
+                                Training.class
+                        )
+                        .setParameter("traineeUsername", trainee.getUsername())
+                        .setParameter("trainerUsername", trainer.getUsername())
+                        .setParameter("trainingName", "Protected Training")
+                        .setMaxResults(1)
+                        .getSingleResult()
+                        .getId()
+        );
+
+        authenticateAs(anotherTrainer.getUsername());
+
+        assertThatThrownBy(() -> trainingService.deleteTraining(trainingId, AUTHORIZATION_HEADER))
+                .isInstanceOf(AuthenticationException.class)
+                .hasMessageContaining("Trainer is not authorized to delete this training.");
+    }
+
+    @Test
+    void shouldThrowExceptionWhenDeletingNonExistingTraining() {
+        authenticateAs("any.trainer");
+
+        assertThatThrownBy(() -> trainingService.deleteTraining(Long.MAX_VALUE, AUTHORIZATION_HEADER))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("Training not found");
     }
 
     @Test
