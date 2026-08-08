@@ -11,7 +11,7 @@ public class TrainerWorkloadClient {
 
     public TrainerWorkloadClient(RestClient.Builder builder) {
         this.restClient = builder
-                .baseUrl("http://localhost:8081")
+                .baseUrl("http://trainer-workload-service")
                 .build();
     }
 
