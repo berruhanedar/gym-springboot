@@ -1,6 +1,7 @@
 package com.berruhanedar.app.gym_springboot.client;
 
 import com.berruhanedar.app.gym_springboot.dto.TrainerWorkloadRequestDTO;
+import com.berruhanedar.app.gym_springboot.exception.WorkloadServiceUnavailableException;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
@@ -48,7 +49,7 @@ public class TrainerWorkloadClient {
                 );
     }
 
-    private void sendRequest(TrainerWorkloadRequestDTO request, String authorizationHeader,String transactionId) {
+    private void sendRequest(TrainerWorkloadRequestDTO request, String authorizationHeader, String transactionId) {
         restClient.post()
                 .uri("/api/workloads")
                 .header(AUTHORIZATION_HEADER, authorizationHeader)
@@ -62,6 +63,9 @@ public class TrainerWorkloadClient {
         log.error("Trainer workload service is unavailable. trainerUsername={}, actionType={}, error={}",
                 request.getTrainerUsername(),
                 request.getActionType(),
-                throwable.getMessage());
+                throwable.getMessage()
+        );
+        throw new WorkloadServiceUnavailableException("Trainer workload service is currently unavailable."
+        );
     }
 }
