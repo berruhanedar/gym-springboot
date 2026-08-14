@@ -26,33 +26,29 @@ public class TrainingController {
 
     @Operation(summary = "Get trainee trainings")
     @GetMapping("/trainees/{username}/trainings")
-    public ResponseEntity<List<TraineeTrainingResponseDTO>> getTraineeTrainings(
-            @PathVariable @NotBlank String username,
-            @Valid @ModelAttribute TraineeTrainingsFilterDTO filter) {
+    public ResponseEntity<List<TraineeTrainingResponseDTO>> getTraineeTrainings(@PathVariable @NotBlank String username, @Valid @ModelAttribute TraineeTrainingsFilterDTO filter) {
         List<TraineeTrainingResponseDTO> response = trainingService.getTraineeTrainings(username, filter);
         return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "Get trainer trainings")
     @GetMapping("/trainers/{username}/trainings")
-    public ResponseEntity<List<TrainerTrainingResponseDTO>> getTrainerTrainings(
-            @PathVariable @NotBlank String username,
-            @Valid @ModelAttribute TrainerTrainingsFilterDTO filter) {
+    public ResponseEntity<List<TrainerTrainingResponseDTO>> getTrainerTrainings(@PathVariable @NotBlank String username, @Valid @ModelAttribute TrainerTrainingsFilterDTO filter) {
         List<TrainerTrainingResponseDTO> response = trainingService.getTrainerTrainings(username, filter);
         return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "Add training")
     @PostMapping
-    public ResponseEntity<Void> addTraining(@Valid @RequestBody NewTrainingRequestDTO request, @RequestHeader("Authorization") String authorizationHeader) {
-        trainingService.createTraining(request, authorizationHeader);
+    public ResponseEntity<Void> addTraining(@Valid @RequestBody NewTrainingRequestDTO request) {
+        trainingService.createTraining(request);
         return ResponseEntity.ok().build();
     }
 
     @Operation(summary = "Delete training")
     @DeleteMapping("/{trainingId}")
-    public ResponseEntity<Void> deleteTraining(@PathVariable Long trainingId, @RequestHeader("Authorization") String authorizationHeader) {
-        trainingService.deleteTraining(trainingId, authorizationHeader);
+    public ResponseEntity<Void> deleteTraining(@PathVariable Long trainingId) {
+        trainingService.deleteTraining(trainingId);
         return ResponseEntity.ok().build();
     }
 
@@ -62,6 +58,4 @@ public class TrainingController {
         List<TrainingTypeResponseDTO> response = trainingService.getTrainingTypes();
         return ResponseEntity.ok(response);
     }
-
-
 }

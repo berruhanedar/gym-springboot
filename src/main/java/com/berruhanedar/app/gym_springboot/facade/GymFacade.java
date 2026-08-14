@@ -76,8 +76,8 @@ public class GymFacade {
         return trainerService.getTrainersNotAssignedToTrainee(traineeUsername);
     }
 
-    public void createTraining(NewTrainingRequestDTO dto, String authorizationHeader) {
-        trainingService.createTraining(dto, authorizationHeader);
+    public void createTraining(NewTrainingRequestDTO dto) {
+        trainingService.createTraining(dto);
     }
 
     public List<TraineeTrainingResponseDTO> getTraineeTrainings(String traineeUsername, TraineeTrainingsFilterDTO filter) {
@@ -92,7 +92,7 @@ public class GymFacade {
         return trainingService.getTrainingTypes();
     }
 
-    public void deleteTraining(Long trainingId, String authorizationHeader) {
-        trainingService.deleteTraining(trainingId, authorizationHeader);
+    public void deleteTraining(Long trainingId) {
+        trainingService.deleteTraining(trainingId);
     }
 }
