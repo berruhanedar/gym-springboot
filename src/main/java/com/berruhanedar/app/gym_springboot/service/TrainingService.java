@@ -1,6 +1,5 @@
 package com.berruhanedar.app.gym_springboot.service;
 
-import com.berruhanedar.app.gym_springboot.client.TrainerWorkloadClient;
 import com.berruhanedar.app.gym_springboot.dao.*;
 import com.berruhanedar.app.gym_springboot.dto.*;
 import com.berruhanedar.app.gym_springboot.entity.*;
@@ -9,6 +8,7 @@ import com.berruhanedar.app.gym_springboot.exception.AuthenticationException;
 import com.berruhanedar.app.gym_springboot.exception.EntityNotFoundException;
 import com.berruhanedar.app.gym_springboot.mapper.TrainingMapper;
 import com.berruhanedar.app.gym_springboot.mapper.TrainingTypeMapper;
+import com.berruhanedar.app.gym_springboot.messaging.TrainerWorkloadProducer;
 import com.berruhanedar.app.gym_springboot.monitoring.GymMetrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +28,7 @@ public class TrainingService {
     private TrainingTypeDao trainingTypeDao;
     private TrainingMapper trainingMapper;
     private TrainingTypeMapper trainingTypeMapper;
-    private TrainerWorkloadClient trainerWorkloadClient;
+    private TrainerWorkloadProducer trainerWorkloadProducer;
 
     @Autowired(required = false)
     private GymMetrics gymMetrics;
@@ -64,8 +64,8 @@ public class TrainingService {
     }
 
     @Autowired
-    public void setTrainerWorkloadClient(TrainerWorkloadClient trainerWorkloadClient) {
-        this.trainerWorkloadClient = trainerWorkloadClient;
+    public void setTrainerWorkloadProducer(TrainerWorkloadProducer trainerWorkloadProducer) {
+        this.trainerWorkloadProducer = trainerWorkloadProducer;
     }
 
     @Transactional(readOnly = true)
@@ -96,7 +96,7 @@ public class TrainingService {
     }
 
     @Transactional
-    public void createTraining(NewTrainingRequestDTO dto, String authorizationHeader) {
+    public void createTraining(NewTrainingRequestDTO dto) {
         validateCurrentUser(dto.getTrainerUsername(), "Trainer is not authorized to create this training.");
         log.info("Creating training. traineeUsername={}, trainerUsername={}", dto.getTraineeUsername(), dto.getTrainerUsername());
         Trainee trainee = findTraineeByUsername(dto.getTraineeUsername());
@@ -108,7 +108,7 @@ public class TrainingService {
         Training saved = trainingDao.save(training);
         TrainerWorkloadRequestDTO workloadRequest = trainingMapper.toTrainerWorkloadRequestDTO(saved);
         workloadRequest.setActionType(ActionType.ADD);
-        trainerWorkloadClient.sendWorkload(workloadRequest, authorizationHeader);
+        trainerWorkloadProducer.sendWorkload(workloadRequest);
         log.info("Training created successfully. id={}", saved.getId());
         if (gymMetrics != null) {
             gymMetrics.recordTrainingCreated();
@@ -124,13 +124,13 @@ public class TrainingService {
     }
 
     @Transactional
-    public void deleteTraining(Long trainingId, String authorizationHeader) {
+    public void deleteTraining(Long trainingId) {
         Training training = trainingDao.findById(trainingId).orElseThrow(() -> new EntityNotFoundException("Training not found: " + trainingId));
         validateCurrentUser(training.getTrainer().getUsername(), "Trainer is not authorized to delete this training.");
         TrainerWorkloadRequestDTO workloadRequest = trainingMapper.toTrainerWorkloadRequestDTO(training);
         workloadRequest.setActionType(ActionType.DELETE);
         trainingDao.delete(training);
-        trainerWorkloadClient.sendWorkload(workloadRequest, authorizationHeader);
+        trainerWorkloadProducer.sendWorkload(workloadRequest);
         log.info("Training deleted successfully. id={}", trainingId);
     }
 
