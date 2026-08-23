@@ -144,6 +144,7 @@ public class TrainingService {
 
     private void validateCurrentUser(String username, String message) {
         String authenticatedUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        log.info("Authorization check. authenticatedUsername={}, requestedUsername={}", authenticatedUsername, username);
         if (!authenticatedUsername.equals(username)) {
             throw new AuthenticationException(message);
         }
