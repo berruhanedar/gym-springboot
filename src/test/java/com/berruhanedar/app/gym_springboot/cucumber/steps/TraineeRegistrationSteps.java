@@ -40,109 +40,53 @@ public class TraineeRegistrationSteps {
 
     @Before
     public void setUp() {
-
         traineeService = mock(TraineeService.class);
         trainerService = mock(TrainerService.class);
-
-        TraineeController traineeController =
-                new TraineeController(traineeService, trainerService);
-
-        LocalValidatorFactoryBean validator =
-                new LocalValidatorFactoryBean();
-
+        TraineeController traineeController = new TraineeController(traineeService, trainerService);
+        LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
-
-        mockMvc = standaloneSetup(traineeController)
-                .setValidator(validator)
-                .setControllerAdvice(
-                        new BaseExceptionHandler(),
-                        new MethodArgumentNotValidExceptionHandler()
-                )
-                .build();
+        mockMvc = standaloneSetup(traineeController).setValidator(validator).setControllerAdvice(new BaseExceptionHandler(), new MethodArgumentNotValidExceptionHandler()).build();
     }
 
     @Given("valid trainee registration data")
     public void validTraineeRegistrationData() {
-
         request = new NewTraineeRequestDTO();
         request.setFirstName("John");
         request.setLastName("Doe");
         request.setDateOfBirth(LocalDate.of(2000, 1, 1));
         request.setAddress("Istanbul");
-
-        RegistrationResponseDTO response =
-                new RegistrationResponseDTO(
-                        "John.Doe",
-                        "password123"
-                );
-
-        when(
-                traineeService.createTrainee(
-                        any(NewTraineeRequestDTO.class)
-                )
-        ).thenReturn(response);
+        RegistrationResponseDTO response = new RegistrationResponseDTO("John.Doe", "password123");
+        when(traineeService.createTrainee(any(NewTraineeRequestDTO.class))).thenReturn(response);
     }
 
     @Given("invalid trainee registration data")
     public void invalidTraineeRegistrationData() {
-
         request = new NewTraineeRequestDTO();
-
         request.setLastName("Doe");
         request.setDateOfBirth(LocalDate.of(2000, 1, 1));
         request.setAddress("Istanbul");
     }
 
     @When("the trainee registration request is sent")
-    public void theTraineeRegistrationRequestIsSent()
-            throws Exception {
-
-        result = mockMvc.perform(
-                        post("/api/trainees")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(
-                                        objectMapper.writeValueAsString(request)
-                                )
-                )
-                .andReturn();
+    public void theTraineeRegistrationRequestIsSent() throws Exception {
+        result = mockMvc.perform(post("/api/trainees").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request))).andReturn();
     }
 
     @Then("the trainee registration response status should be {int}")
-    public void theTraineeRegistrationResponseStatusShouldBe(
-            int expectedStatus) {
-
-        assertThat(
-                result.getResponse().getStatus()
-        ).isEqualTo(expectedStatus);
+    public void theTraineeRegistrationResponseStatusShouldBe(int expectedStatus) {
+        assertThat(result.getResponse().getStatus()).isEqualTo(expectedStatus);
     }
 
     @Then("generated trainee credentials should be returned")
-    public void generatedTraineeCredentialsShouldBeReturned()
-            throws Exception {
-
-        JsonNode response =
-                objectMapper.readTree(
-                        result.getResponse().getContentAsString()
-                );
-
-        assertThat(response.get("username").asText())
-                .isEqualTo("John.Doe");
-
-        assertThat(response.get("password").asText())
-                .isEqualTo("password123");
-
-        verify(traineeService)
-                .createTrainee(
-                        any(NewTraineeRequestDTO.class)
-                );
+    public void generatedTraineeCredentialsShouldBeReturned() throws Exception {
+        JsonNode response = objectMapper.readTree(result.getResponse().getContentAsString());
+        assertThat(response.get("username").asText()).isEqualTo("John.Doe");
+        assertThat(response.get("password").asText()).isEqualTo("password123");
+        verify(traineeService).createTrainee(any(NewTraineeRequestDTO.class));
     }
 
     @Then("trainee registration service should not be called")
     public void traineeRegistrationServiceShouldNotBeCalled() {
-
-        verify(
-                traineeService,
-                never()
-        ).createTrainee(any(NewTraineeRequestDTO.class));
+        verify(traineeService, never()).createTrainee(any(NewTraineeRequestDTO.class));
     }
 }

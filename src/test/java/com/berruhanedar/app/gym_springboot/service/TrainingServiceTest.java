@@ -53,13 +53,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class TrainingServiceTest {
 
-    /*
-     * TrainingService testlerinin amacı ActiveMQ bağlantısını test etmek değil.
-     *
-     * Production ortamında gerçek JmsTemplate kullanılır.
-     * Test ortamında ise aşağıdaki mock JmsTemplate kullanılarak
-     * gerçek ActiveMQ broker'a bağlantı kurulması engellenir.
-     */
     @TestConfiguration
     static class TestConfig {
 
@@ -79,6 +72,9 @@ class TrainingServiceTest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
+    @Autowired
+    private JmsTemplate jmsTemplate;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -88,122 +84,49 @@ class TrainingServiceTest {
     }
 
     @Test
+    void shouldSendTrainerWorkloadMessageWhenTrainingIsCreated() {
+        TrainingType yoga = ensureTrainingType("Yoga");
+        RegistrationResponseDTO trainee = createTrainee("John", "Smith");
+        RegistrationResponseDTO trainer = createTrainer("David", "Brown", yoga);
+        authenticateAs(trainer.getUsername());
+        gymFacade.createTraining(newTraining(trainee.getUsername(), trainer.getUsername(), "Yoga Training", LocalDate.now().plusDays(1), 60));
+        Mockito.verify(jmsTemplate).convertAndSend(Mockito.eq("trainer.workload.queue"), Mockito.any(), Mockito.any());
+    }
+
+    @Test
     void shouldCreateTrainingWhenReferencesAreValid() {
 
         TrainingType yoga = ensureTrainingType("Yoga");
-
-        RegistrationResponseDTO trainee =
-                createTrainee("Sophia", "Williams");
-
-        RegistrationResponseDTO trainer =
-                createTrainer("James", "Wilson", yoga);
-
+        RegistrationResponseDTO trainee = createTrainee("Sophia", "Williams");
+        RegistrationResponseDTO trainer = createTrainer("James", "Wilson", yoga);
         authenticateAs(trainer.getUsername());
-
-        gymFacade.createTraining(
-                newTraining(
-                        trainee.getUsername(),
-                        trainer.getUsername(),
-                        "Morning Yoga",
-                        LocalDate.now().plusDays(1),
-                        45
-                )
-        );
+        gymFacade.createTraining(newTraining(trainee.getUsername(), trainer.getUsername(), "Morning Yoga", LocalDate.now().plusDays(1), 45));
 
         authenticateAs(trainee.getUsername());
 
-        List<TraineeTrainingResponseDTO> trainings =
-                gymFacade.getTraineeTrainings(
-                        trainee.getUsername(),
-                        traineeFilter(
-                                null,
-                                null,
-                                null,
-                                null
-                        )
-                );
+        List<TraineeTrainingResponseDTO> trainings = gymFacade.getTraineeTrainings(trainee.getUsername(), traineeFilter(null, null, null, null));
 
-        assertThat(trainings)
-                .hasSize(1);
-
-        assertThat(trainings.get(0).getTrainingName())
-                .isEqualTo("Morning Yoga");
-
-        assertThat(trainings.get(0).getTrainingTypeName())
-                .isEqualTo("Yoga");
-
-        assertThat(trainings.get(0).getTrainingDuration())
-                .isEqualTo(45);
-
-        assertThat(trainings.get(0).getTrainerName())
-                .isEqualTo("James Wilson");
+        assertThat(trainings).hasSize(1);
+        assertThat(trainings.get(0).getTrainingName()).isEqualTo("Morning Yoga");
+        assertThat(trainings.get(0).getTrainingTypeName()).isEqualTo("Yoga");
+        assertThat(trainings.get(0).getTrainingDuration()).isEqualTo(45);
+        assertThat(trainings.get(0).getTrainerName()).isEqualTo("James Wilson");
     }
 
     @Test
     void shouldFilterTraineeTrainingsByDateTrainerNameAndTrainingType() {
-
-        TrainingType yoga =
-                ensureTrainingType("Yoga");
-
-        TrainingType cardio =
-                ensureTrainingType("Cardio");
-
-        RegistrationResponseDTO trainee =
-                createTrainee(
-                        "Grace",
-                        "Hall"
-                );
-
-        RegistrationResponseDTO yogaTrainer =
-                createTrainer(
-                        "Henry",
-                        "Young",
-                        yoga
-                );
-
-        RegistrationResponseDTO cardioTrainer =
-                createTrainer(
-                        "Liam",
-                        "Stone",
-                        cardio
-                );
+        TrainingType yoga = ensureTrainingType("Yoga");
+        TrainingType cardio = ensureTrainingType("Cardio");
+        RegistrationResponseDTO trainee = createTrainee("Grace", "Hall");
+        RegistrationResponseDTO yogaTrainer = createTrainer("Henry", "Young", yoga);
+        RegistrationResponseDTO cardioTrainer = createTrainer("Liam", "Stone", cardio);
 
         authenticateAs(yogaTrainer.getUsername());
-
-        gymFacade.createTraining(
-                newTraining(
-                        trainee.getUsername(),
-                        yogaTrainer.getUsername(),
-                        "Yoga Match",
-                        LocalDate.now().plusDays(2),
-                        50
-                )
-        );
-
+        gymFacade.createTraining(newTraining(trainee.getUsername(), yogaTrainer.getUsername(), "Yoga Match", LocalDate.now().plusDays(2), 50));
         authenticateAs(cardioTrainer.getUsername());
-
-        gymFacade.createTraining(
-                newTraining(
-                        trainee.getUsername(),
-                        cardioTrainer.getUsername(),
-                        "Cardio Out",
-                        LocalDate.now().plusDays(2),
-                        30
-                )
-        );
-
+        gymFacade.createTraining(newTraining(trainee.getUsername(), cardioTrainer.getUsername(), "Cardio Out", LocalDate.now().plusDays(2), 30));
         authenticateAs(yogaTrainer.getUsername());
-
-        gymFacade.createTraining(
-                newTraining(
-                        trainee.getUsername(),
-                        yogaTrainer.getUsername(),
-                        "Old Yoga",
-                        LocalDate.now().plusDays(10),
-                        40
-                )
-        );
-
+        gymFacade.createTraining(newTraining(trainee.getUsername(), yogaTrainer.getUsername(), "Old Yoga", LocalDate.now().plusDays(10), 40));
         authenticateAs(trainee.getUsername());
 
         List<TraineeTrainingResponseDTO> result =
@@ -226,79 +149,22 @@ class TrainingServiceTest {
 
     @Test
     void shouldFilterTrainerTrainingsByDateAndTraineeName() {
-
-        TrainingType pilates =
-                ensureTrainingType("Pilates");
-
-        RegistrationResponseDTO trainer =
-                createTrainer(
-                        "Trainer",
-                        "Filter",
-                        pilates
-                );
-
-        RegistrationResponseDTO expectedTrainee =
-                createTrainee(
-                        "Expected",
-                        "Person"
-                );
-
-        RegistrationResponseDTO otherTrainee =
-                createTrainee(
-                        "Other",
-                        "Person"
-                );
+        TrainingType pilates = ensureTrainingType("Pilates");
+        RegistrationResponseDTO trainer = createTrainer("Trainer", "Filter", pilates);
+        RegistrationResponseDTO expectedTrainee = createTrainee("Expected", "Person");
+        RegistrationResponseDTO otherTrainee = createTrainee("Other", "Person");
 
         authenticateAs(trainer.getUsername());
 
-        gymFacade.createTraining(
-                newTraining(
-                        expectedTrainee.getUsername(),
-                        trainer.getUsername(),
-                        "Pilates Match",
-                        LocalDate.now().plusDays(4),
-                        55
-                )
-        );
+        gymFacade.createTraining(newTraining(expectedTrainee.getUsername(), trainer.getUsername(), "Pilates Match", LocalDate.now().plusDays(4), 55));
+        gymFacade.createTraining(newTraining(otherTrainee.getUsername(), trainer.getUsername(), "Pilates Other", LocalDate.now().plusDays(4), 35));
+        gymFacade.createTraining(newTraining(expectedTrainee.getUsername(), trainer.getUsername(), "Pilates Later", LocalDate.now().plusDays(20), 35));
 
-        gymFacade.createTraining(
-                newTraining(
-                        otherTrainee.getUsername(),
-                        trainer.getUsername(),
-                        "Pilates Other",
-                        LocalDate.now().plusDays(4),
-                        35
-                )
-        );
+        List<TrainerTrainingResponseDTO> result = gymFacade.getTrainerTrainings(trainer.getUsername(), trainerFilter(LocalDate.now().plusDays(3), LocalDate.now().plusDays(5), "Expected Per"));
 
-        gymFacade.createTraining(
-                newTraining(
-                        expectedTrainee.getUsername(),
-                        trainer.getUsername(),
-                        "Pilates Later",
-                        LocalDate.now().plusDays(20),
-                        35
-                )
-        );
-
-        List<TrainerTrainingResponseDTO> result =
-                gymFacade.getTrainerTrainings(
-                        trainer.getUsername(),
-                        trainerFilter(
-                                LocalDate.now().plusDays(3),
-                                LocalDate.now().plusDays(5),
-                                "Expected Per"
-                        )
-                );
-
-        assertThat(result)
-                .hasSize(1);
-
-        assertThat(result.get(0).getTrainingName())
-                .isEqualTo("Pilates Match");
-
-        assertThat(result.get(0).getTraineeName())
-                .isEqualTo("Expected Person");
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getTrainingName()).isEqualTo("Pilates Match");
+        assertThat(result.get(0).getTraineeName()).isEqualTo("Expected Person");
     }
 
     @Test
@@ -367,132 +233,30 @@ class TrainingServiceTest {
 
     @Test
     void shouldThrowExceptionWhenTraineeDoesNotExist() {
-
-        TrainingType yoga =
-                ensureTrainingType("Yoga");
-
-        RegistrationResponseDTO trainer =
-                createTrainer(
-                        "Valid",
-                        "Trainer",
-                        yoga
-                );
-
+        TrainingType yoga = ensureTrainingType("Yoga");
+        RegistrationResponseDTO trainer = createTrainer("Valid", "Trainer", yoga);
         authenticateAs(trainer.getUsername());
-
-        assertThatThrownBy(() ->
-                gymFacade.createTraining(
-                        newTraining(
-                                "missing.trainee",
-                                trainer.getUsername(),
-                                "Training",
-                                LocalDate.now().plusDays(1),
-                                60
-                        )
-                )
-        )
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining(
-                        "Trainee not found"
-                );
+        assertThatThrownBy(() -> gymFacade.createTraining(newTraining("missing.trainee", trainer.getUsername(), "Training", LocalDate.now().plusDays(1), 60))).isInstanceOf(EntityNotFoundException.class).hasMessageContaining("Trainee not found");
     }
 
     @Test
     void shouldThrowExceptionWhenTrainerDoesNotExist() {
-
-        TrainingType yoga =
-                ensureTrainingType("Yoga");
-
-        RegistrationResponseDTO trainee =
-                createTrainee(
-                        "Lily",
-                        "Scott"
-                );
-
-        RegistrationResponseDTO trainer =
-                createTrainer(
-                        "Valid",
-                        "Trainer",
-                        yoga
-                );
-
+        TrainingType yoga = ensureTrainingType("Yoga");
+        RegistrationResponseDTO trainee = createTrainee("Lily", "Scott");
+        RegistrationResponseDTO trainer = createTrainer("Valid", "Trainer", yoga);
         authenticateAs(trainer.getUsername());
-
-        assertThatThrownBy(() ->
-                gymFacade.createTraining(
-                        newTraining(
-                                trainee.getUsername(),
-                                "missing.trainer",
-                                "Training",
-                                LocalDate.now().plusDays(1),
-                                60
-                        )
-                )
-        )
-                .isInstanceOf(AuthenticationException.class)
-                .hasMessageContaining(
-                        "Trainer is not authorized"
-                );
+        assertThatThrownBy(() -> gymFacade.createTraining(newTraining(trainee.getUsername(), "missing.trainer", "Training", LocalDate.now().plusDays(1), 60))).isInstanceOf(AuthenticationException.class).hasMessageContaining("Trainer is not authorized");
     }
 
     @Test
     void shouldRejectTrainingOperationsWhenAuthenticatedUserIsNotAuthorized() {
-
-        TrainingType yoga =
-                ensureTrainingType("Yoga");
-
-        RegistrationResponseDTO trainee =
-                createTrainee(
-                        "Auth",
-                        "Trainee"
-                );
-
-        RegistrationResponseDTO trainer =
-                createTrainer(
-                        "Auth",
-                        "Trainer",
-                        yoga
-                );
-
+        TrainingType yoga = ensureTrainingType("Yoga");
+        RegistrationResponseDTO trainee = createTrainee("Auth", "Trainee");
+        RegistrationResponseDTO trainer = createTrainer("Auth", "Trainer", yoga);
         authenticateAs("another.user");
-
-        assertThatThrownBy(() ->
-                gymFacade.createTraining(
-                        newTraining(
-                                trainee.getUsername(),
-                                trainer.getUsername(),
-                                "Auth Fail",
-                                LocalDate.now().plusDays(1),
-                                45
-                        )
-                )
-        )
-                .isInstanceOf(AuthenticationException.class);
-
-        assertThatThrownBy(() ->
-                gymFacade.getTraineeTrainings(
-                        trainee.getUsername(),
-                        traineeFilter(
-                                null,
-                                null,
-                                null,
-                                null
-                        )
-                )
-        )
-                .isInstanceOf(AuthenticationException.class);
-
-        assertThatThrownBy(() ->
-                gymFacade.getTrainerTrainings(
-                        trainer.getUsername(),
-                        trainerFilter(
-                                null,
-                                null,
-                                null
-                        )
-                )
-        )
-                .isInstanceOf(AuthenticationException.class);
+        assertThatThrownBy(() -> gymFacade.createTraining(newTraining(trainee.getUsername(), trainer.getUsername(), "Auth Fail", LocalDate.now().plusDays(1), 45))).isInstanceOf(AuthenticationException.class);
+        assertThatThrownBy(() -> gymFacade.getTraineeTrainings(trainee.getUsername(), traineeFilter(null, null, null, null))).isInstanceOf(AuthenticationException.class);
+        assertThatThrownBy(() -> gymFacade.getTrainerTrainings(trainer.getUsername(), trainerFilter(null, null, null))).isInstanceOf(AuthenticationException.class);
     }
 
     @Test
@@ -530,12 +294,12 @@ class TrainingServiceTest {
                 transactionTemplate.execute(status ->
                         entityManager.createQuery(
                                         """
-                                        SELECT t
-                                        FROM Training t
-                                        WHERE t.trainee.username = :traineeUsername
-                                          AND t.trainer.username = :trainerUsername
-                                          AND t.trainingName = :trainingName
-                                        """,
+                                                SELECT t
+                                                FROM Training t
+                                                WHERE t.trainee.username = :traineeUsername
+                                                  AND t.trainer.username = :trainerUsername
+                                                  AND t.trainingName = :trainingName
+                                                """,
                                         Training.class
                                 )
                                 .setParameter(
@@ -561,10 +325,10 @@ class TrainingServiceTest {
                 transactionTemplate.execute(status ->
                         entityManager.createQuery(
                                         """
-                                        SELECT COUNT(t)
-                                        FROM Training t
-                                        WHERE t.id = :trainingId
-                                        """,
+                                                SELECT COUNT(t)
+                                                FROM Training t
+                                                WHERE t.id = :trainingId
+                                                """,
                                         Long.class
                                 )
                                 .setParameter(
@@ -605,265 +369,96 @@ class TrainingServiceTest {
                 );
 
         authenticateAs(trainer.getUsername());
-
-        gymFacade.createTraining(
-                newTraining(
-                        trainee.getUsername(),
-                        trainer.getUsername(),
-                        "Protected Training",
-                        LocalDate.now().plusDays(1),
-                        60
-                )
-        );
-
-        Long trainingId =
-                transactionTemplate.execute(status ->
-                        entityManager.createQuery(
-                                        """
-                                        SELECT t
-                                        FROM Training t
-                                        WHERE t.trainee.username = :traineeUsername
-                                          AND t.trainer.username = :trainerUsername
-                                          AND t.trainingName = :trainingName
-                                        """,
-                                        Training.class
-                                )
-                                .setParameter(
-                                        "traineeUsername",
-                                        trainee.getUsername()
-                                )
-                                .setParameter(
-                                        "trainerUsername",
-                                        trainer.getUsername()
-                                )
-                                .setParameter(
-                                        "trainingName",
-                                        "Protected Training"
-                                )
-                                .setMaxResults(1)
-                                .getSingleResult()
-                                .getId()
-                );
-
+        gymFacade.createTraining(newTraining(trainee.getUsername(), trainer.getUsername(), "Protected Training", LocalDate.now().plusDays(1), 60));
+        Long trainingId = transactionTemplate.execute(status -> entityManager.createQuery("""
+                SELECT t
+                FROM Training t
+                WHERE t.trainee.username = :traineeUsername
+                  AND t.trainer.username = :trainerUsername
+                  AND t.trainingName = :trainingName
+                """, Training.class).setParameter("traineeUsername", trainee.getUsername()).setParameter("trainerUsername", trainer.getUsername()).setParameter("trainingName", "Protected Training").setMaxResults(1).getSingleResult().getId());
         authenticateAs(anotherTrainer.getUsername());
-
-        assertThatThrownBy(() ->
-                trainingService.deleteTraining(trainingId)
-        )
-                .isInstanceOf(AuthenticationException.class)
-                .hasMessageContaining(
-                        "Trainer is not authorized to delete this training."
-                );
+        assertThatThrownBy(() -> trainingService.deleteTraining(trainingId)).isInstanceOf(AuthenticationException.class).hasMessageContaining("Trainer is not authorized to delete this training.");
     }
 
     @Test
     void shouldThrowExceptionWhenDeletingNonExistingTraining() {
-
         authenticateAs("any.trainer");
-
-        assertThatThrownBy(() ->
-                trainingService.deleteTraining(Long.MAX_VALUE)
-        )
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining(
-                        "Training not found"
-                );
+        assertThatThrownBy(() -> trainingService.deleteTraining(Long.MAX_VALUE)).isInstanceOf(EntityNotFoundException.class).hasMessageContaining("Training not found");
     }
 
     @Test
     void shouldReturnTrainingTypes() {
-
         ensureTrainingType("Yoga");
         ensureTrainingType("Cardio");
         ensureTrainingType("Pilates");
-
-        List<TrainingTypeResponseDTO> result =
-                gymFacade.getTrainingTypes();
-
-        assertThat(result)
-                .extracting(
-                        TrainingTypeResponseDTO::getTrainingTypeName
-                )
-                .contains(
-                        "Yoga",
-                        "Cardio"
-                );
+        List<TrainingTypeResponseDTO> result = gymFacade.getTrainingTypes();
+        assertThat(result).extracting(TrainingTypeResponseDTO::getTrainingTypeName).contains("Yoga", "Cardio");
     }
 
-    private RegistrationResponseDTO createTrainee(
-            String firstName,
-            String lastName) {
-
-        NewTraineeRequestDTO request =
-                new NewTraineeRequestDTO();
-
+    private RegistrationResponseDTO createTrainee(String firstName, String lastName) {
+        NewTraineeRequestDTO request = new NewTraineeRequestDTO();
         request.setFirstName(firstName);
         request.setLastName(lastName);
-
-        request.setDateOfBirth(
-                LocalDate.of(
-                        2000,
-                        1,
-                        1
-                )
-        );
+        request.setDateOfBirth(LocalDate.of(2000, 1, 1));
 
         return gymFacade.createTrainee(request);
     }
 
-    private RegistrationResponseDTO createTrainer(
-            String firstName,
-            String lastName,
-            TrainingType specialization) {
-
-        NewTrainerRequestDTO request =
-                new NewTrainerRequestDTO();
-
+    private RegistrationResponseDTO createTrainer(String firstName, String lastName, TrainingType specialization) {
+        NewTrainerRequestDTO request = new NewTrainerRequestDTO();
         request.setFirstName(firstName);
         request.setLastName(lastName);
-
-        request.setSpecializationName(
-                specialization.getTrainingTypeName()
-        );
-
+        request.setSpecializationName(specialization.getTrainingTypeName());
         return gymFacade.createTrainer(request);
     }
 
-    private NewTrainingRequestDTO newTraining(
-            String traineeUsername,
-            String trainerUsername,
-            String trainingName,
-            LocalDate trainingDate,
-            Integer trainingDuration) {
-
-        NewTrainingRequestDTO request =
-                new NewTrainingRequestDTO();
-
-        request.setTraineeUsername(
-                traineeUsername
-        );
-
-        request.setTrainerUsername(
-                trainerUsername
-        );
-
-        request.setTrainingName(
-                trainingName
-        );
-
-        request.setTrainingDate(
-                trainingDate
-        );
-
-        request.setTrainingDuration(
-                trainingDuration
-        );
-
+    private NewTrainingRequestDTO newTraining(String traineeUsername, String trainerUsername, String trainingName, LocalDate trainingDate, Integer trainingDuration) {
+        NewTrainingRequestDTO request = new NewTrainingRequestDTO();
+        request.setTraineeUsername(traineeUsername);
+        request.setTrainerUsername(trainerUsername);
+        request.setTrainingName(trainingName);
+        request.setTrainingDate(trainingDate);
+        request.setTrainingDuration(trainingDuration);
         return request;
     }
 
-    private TraineeTrainingsFilterDTO traineeFilter(
-            LocalDate periodFrom,
-            LocalDate periodTo,
-            String trainerName,
-            String trainingType) {
-
-        TraineeTrainingsFilterDTO filter =
-                new TraineeTrainingsFilterDTO();
-
-        filter.setPeriodFrom(
-                periodFrom
-        );
-
-        filter.setPeriodTo(
-                periodTo
-        );
-
-        filter.setTrainerName(
-                trainerName
-        );
-
-        filter.setTrainingType(
-                trainingType
-        );
-
+    private TraineeTrainingsFilterDTO traineeFilter(LocalDate periodFrom, LocalDate periodTo, String trainerName, String trainingType) {
+        TraineeTrainingsFilterDTO filter = new TraineeTrainingsFilterDTO();
+        filter.setPeriodFrom(periodFrom);
+        filter.setPeriodTo(periodTo);
+        filter.setTrainerName(trainerName);
+        filter.setTrainingType(trainingType);
         return filter;
     }
 
-    private TrainerTrainingsFilterDTO trainerFilter(
-            LocalDate periodFrom,
-            LocalDate periodTo,
-            String traineeName) {
-
-        TrainerTrainingsFilterDTO filter =
-                new TrainerTrainingsFilterDTO();
-
-        filter.setPeriodFrom(
-                periodFrom
-        );
-
-        filter.setPeriodTo(
-                periodTo
-        );
-
-        filter.setTraineeName(
-                traineeName
-        );
-
+    private TrainerTrainingsFilterDTO trainerFilter(LocalDate periodFrom, LocalDate periodTo, String traineeName) {
+        TrainerTrainingsFilterDTO filter = new TrainerTrainingsFilterDTO();
+        filter.setPeriodFrom(periodFrom);
+        filter.setPeriodTo(periodTo);
+        filter.setTraineeName(traineeName);
         return filter;
     }
 
     private void authenticateAs(String username) {
-
-        UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(
-                        username,
-                        null,
-                        List.of()
-                );
-
-        SecurityContextHolder
-                .getContext()
-                .setAuthentication(authentication);
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, List.of());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     private TrainingType ensureTrainingType(String name) {
-
         return transactionTemplate.execute(status -> {
-
-            List<TrainingType> existingTypes =
-                    entityManager.createQuery(
-                                    """
-                                    SELECT t
-                                    FROM TrainingType t
-                                    WHERE LOWER(t.trainingTypeName) = LOWER(:name)
-                                    """,
-                                    TrainingType.class
-                            )
-                            .setParameter(
-                                    "name",
-                                    name
-                            )
-                            .setMaxResults(1)
-                            .getResultList();
-
+            List<TrainingType> existingTypes = entityManager.createQuery("""
+                    SELECT t
+                    FROM TrainingType t
+                    WHERE LOWER(t.trainingTypeName) = LOWER(:name)
+                    """, TrainingType.class).setParameter("name", name).setMaxResults(1).getResultList();
             if (!existingTypes.isEmpty()) {
                 return existingTypes.get(0);
             }
-
-            TrainingType trainingType =
-                    new TrainingType();
-
-            trainingType.setTrainingTypeName(
-                    name
-            );
-
-            entityManager.persist(
-                    trainingType
-            );
-
+            TrainingType trainingType = new TrainingType();
+            trainingType.setTrainingTypeName(name);
+            entityManager.persist(trainingType);
             entityManager.flush();
-
             return trainingType;
         });
     }

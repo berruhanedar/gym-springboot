@@ -1,3 +1,4 @@
+@component @trainer
 Feature: Trainer registration
 
   Scenario: Successfully register a trainer

@@ -1,3 +1,4 @@
+@integration @workload
 Feature: Gym and Trainer Workload microservice integration
 
   Scenario: Send trainer workload message successfully
