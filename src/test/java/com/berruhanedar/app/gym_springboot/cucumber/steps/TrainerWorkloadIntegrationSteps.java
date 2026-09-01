@@ -34,159 +34,89 @@ public class TrainerWorkloadIntegrationSteps {
 
     private TrainerWorkloadProducer trainerWorkloadProducer;
     private TrainerWorkloadRequestDTO request;
-
     private Validator validator;
+    private Set<ConstraintViolation<TrainerWorkloadRequestDTO>> violations;
 
-    private Set<ConstraintViolation<TrainerWorkloadRequestDTO>>
-            violations;
-
-    @Before
+    @Before("@integration")
     public void setUpIntegration() {
-
-        trainerWorkloadProducer =
-                new TrainerWorkloadProducer(jmsTemplate);
-
-        ReflectionTestUtils.setField(
-                trainerWorkloadProducer,
-                "trainerWorkloadQueue",
-                QUEUE_NAME
-        );
-
-        validator = Validation
-                .buildDefaultValidatorFactory()
-                .getValidator();
-
+        trainerWorkloadProducer = new TrainerWorkloadProducer(jmsTemplate);
+        ReflectionTestUtils.setField(trainerWorkloadProducer, "trainerWorkloadQueue", QUEUE_NAME);
+        validator = Validation.buildDefaultValidatorFactory().getValidator();
         MDC.clear();
-
         clearQueue();
     }
 
     private void clearQueue() {
-
-        long originalTimeout =
-                jmsTemplate.getReceiveTimeout();
-
+        long originalTimeout = jmsTemplate.getReceiveTimeout();
         jmsTemplate.setReceiveTimeout(100);
-
         while (jmsTemplate.receive(QUEUE_NAME) != null) {
-            // Remove messages left by previous test runs
         }
-
         jmsTemplate.setReceiveTimeout(originalTimeout);
     }
 
     @Given("a valid trainer workload request for integration")
     public void aValidTrainerWorkloadRequestForIntegration() {
-
         request = new TrainerWorkloadRequestDTO();
-
         request.setTrainerUsername("john.smith");
         request.setTrainerFirstName("John");
         request.setTrainerLastName("Smith");
         request.setActive(true);
-        request.setTrainingDate(
-                LocalDate.of(2026, 8, 30)
-        );
+        request.setTrainingDate(LocalDate.of(2026, 8, 30));
         request.setTrainingDuration(60);
         request.setActionType(ActionType.ADD);
     }
 
     @Given("an invalid trainer workload request for integration")
     public void anInvalidTrainerWorkloadRequestForIntegration() {
-
         request = new TrainerWorkloadRequestDTO();
-
         request.setTrainerUsername("john.smith");
         request.setTrainerFirstName("John");
         request.setTrainerLastName("Smith");
         request.setActive(true);
-        request.setTrainingDate(
-                LocalDate.of(2026, 8, 30)
-        );
-
-        // Invalid because trainingDuration must be positive
+        request.setTrainingDate(LocalDate.of(2026, 8, 30));
         request.setTrainingDuration(0);
-
         request.setActionType(ActionType.ADD);
     }
 
     @And("a transaction id exists")
     public void aTransactionIdExists() {
-
-        MDC.put(
-                TRANSACTION_ID,
-                "integration-test-id"
-        );
+        MDC.put(TRANSACTION_ID, "integration-test-id");
     }
 
     @When("the gym microservice sends the trainer workload message")
     public void theGymMicroserviceSendsTheTrainerWorkloadMessage() {
-
         trainerWorkloadProducer.sendWorkload(request);
     }
 
     @When("the trainer workload request is validated for integration")
     public void theTrainerWorkloadRequestIsValidatedForIntegration() {
-
-        violations =
-                validator.validate(request);
+        violations = validator.validate(request);
     }
 
     @Then("the trainer workload message should be received from the queue")
     public void theTrainerWorkloadMessageShouldBeReceivedFromTheQueue() {
-
-        Object receivedMessage =
-                jmsTemplate.receiveAndConvert(QUEUE_NAME);
-
-        assertThat(receivedMessage)
-                .isNotNull();
+        Object receivedMessage = jmsTemplate.receiveAndConvert(QUEUE_NAME);
+        assertThat(receivedMessage).isNotNull();
     }
 
     @Then("the trainer workload message should contain the transaction id")
-    public void theTrainerWorkloadMessageShouldContainTheTransactionId()
-            throws Exception {
-
-        Message receivedJmsMessage =
-                jmsTemplate.receive(QUEUE_NAME);
-
-        assertThat(receivedJmsMessage)
-                .isNotNull();
-
-        assertThat(
-                receivedJmsMessage.getStringProperty(
-                        TRANSACTION_ID
-                )
-        ).isEqualTo("integration-test-id");
-
+    public void theTrainerWorkloadMessageShouldContainTheTransactionId() throws Exception {
+        Message receivedJmsMessage = jmsTemplate.receive(QUEUE_NAME);
+        assertThat(receivedJmsMessage).isNotNull();
+        assertThat(receivedJmsMessage.getStringProperty(TRANSACTION_ID)).isEqualTo("integration-test-id");
         MDC.clear();
     }
 
     @Then("the trainer workload request should be invalid")
     public void theTrainerWorkloadRequestShouldBeInvalid() {
-
-        assertThat(violations)
-                .isNotEmpty();
-
-        assertThat(
-                violations.stream()
-                        .anyMatch(violation ->
-                                violation
-                                        .getPropertyPath()
-                                        .toString()
-                                        .equals("trainingDuration")
-                        )
-        ).isTrue();
+        assertThat(violations).isNotEmpty();
+        assertThat(violations.stream().anyMatch(violation -> violation.getPropertyPath().toString().equals("trainingDuration"))).isTrue();
     }
 
     @And("no trainer workload message should be sent to the queue")
     public void noTrainerWorkloadMessageShouldBeSentToTheQueue() {
-
         jmsTemplate.setReceiveTimeout(500);
-
-        Message message =
-                jmsTemplate.receive(QUEUE_NAME);
-
-        assertThat(message)
-                .isNull();
+        Message message = jmsTemplate.receive(QUEUE_NAME);
+        assertThat(message).isNull();
     }
 }
