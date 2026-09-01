@@ -1,3 +1,4 @@
+@component @login
 Feature: User login
 
   Scenario: Successfully login with valid credentials

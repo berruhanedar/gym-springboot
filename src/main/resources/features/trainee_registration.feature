@@ -1,3 +1,4 @@
+@component @trainee
 Feature: Trainee registration
 
   Scenario: Successfully register a trainee
